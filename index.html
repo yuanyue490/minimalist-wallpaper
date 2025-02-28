@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极简壁纸制作器</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/color-picker.css">
+    <link rel="stylesheet" href="css/saved-designs.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>极简壁纸制作器</h1>
+        </div>
+        <div class="actions">
+            <button id="download-btn" class="btn primary">下载壁纸</button>
+            <button id="save-btn" class="btn">保存设计</button>
+            <button id="load-btn" class="btn">加载设计</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="sidebar left-panel">
+            <div class="panel">
+                <h3>壁纸尺寸</h3>
+                <div class="size-presets">
+                    <h4>手机壁纸</h4>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" data-width="1080" data-height="1920">iPhone (1080×1920)</button>
+                        <button class="preset-btn" data-width="1440" data-height="2560">Android (1440×2560)</button>
+                        <button class="preset-btn" data-width="1284" data-height="2778">iPhone 13 Pro Max (1284×2778)</button>
+                    </div>
+                    
+                    <h4>电脑壁纸</h4>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" data-width="1920" data-height="1080">16:9 (1920×1080)</button>
+                        <button class="preset-btn" data-width="1920" data-height="1200">16:10 (1920×1200)</button>
+                        <button class="preset-btn" data-width="2560" data-height="1440">2K (2560×1440)</button>
+                    </div>
+                    
+                    <h4>自定义尺寸</h4>
+                    <div class="custom-size">
+                        <div class="input-group">
+                            <label for="custom-width">宽度</label>
+                            <input type="number" id="custom-width" min="100" max="4000" value="1920">
+                        </div>
+                        <div class="input-group">
+                            <label for="custom-height">高度</label>
+                            <input type="number" id="custom-height" min="100" max="4000" value="1080">
+                        </div>
+                        <button id="apply-custom-size" class="btn">应用</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h3>背景设置</h3>
+                <div class="background-settings">
+                    <div class="bg-type">
+                        <label>
+                            <input type="radio" name="bg-type" value="solid" checked>
+                            纯色背景
+                        </label>
+                        <label>
+                            <input type="radio" name="bg-type" value="gradient">
+                            渐变背景
+                        </label>
+                    </div>
+                    
+                    <div id="solid-bg-controls" class="bg-controls">
+                        <div class="color-picker-container">
+                            <label>背景颜色</label>
+                            <input type="color" id="solid-color-picker" value="#f0f0f0">
+                        </div>
+                    </div>
+                    
+                    <div id="gradient-bg-controls" class="bg-controls" style="display: none;">
+                        <div class="color-picker-container">
+                            <label>起始颜色</label>
+                            <input type="color" id="gradient-color-1" value="#ffffff">
+                        </div>
+                        <div class="color-picker-container">
+                            <label>结束颜色</label>
+                            <input type="color" id="gradient-color-2" value="#000000">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="gradient-direction">渐变方向</label>
+                            <select id="gradient-direction">
+                                <option value="to right">从左到右</option>
+                                <option value="to bottom">从上到下</option>
+                                <option value="to bottom right">对角线(左上到右下)</option>
+                                <option value="to bottom left">对角线(右上到左下)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="gradient-type">渐变类型</label>
+                            <select id="gradient-type">
+                                <option value="linear">线性渐变</option>
+                                <option value="radial">径向渐变</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h3>图形元素</h3>
+                <div class="shapes-library">
+                    <button class="shape-btn" data-shape="rectangle">
+                        <span class="material-icons">crop_square</span>
+                        矩形
+                    </button>
+                    <button class="shape-btn" data-shape="circle">
+                        <span class="material-icons">circle</span>
+                        圆形
+                    </button>
+                    <button class="shape-btn" data-shape="triangle">
+                        <span class="material-icons">change_history</span>
+                        三角形
+                    </button>
+                    <button class="shape-btn" data-shape="line">
+                        <span class="material-icons">horizontal_rule</span>
+                        线条
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="wallpaper-canvas"></canvas>
+            <div class="canvas-info">
+                <span id="canvas-size">1920 × 1080</span>
+                <span id="zoom-level">缩放: 100%</span>
+            </div>
+        </div>
+        
+        <div class="sidebar right-panel">
+            <div class="panel" id="element-properties" style="display: none;">
+                <h3>元素属性</h3>
+                <div class="element-controls">
+                    <div class="input-group">
+                        <label for="element-color">颜色</label>
+                        <input type="color" id="element-color" value="#000000">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="element-opacity">透明度</label>
+                        <input type="range" id="element-opacity" min="0" max="100" value="100">
+                        <span id="opacity-value">100%</span>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="element-size">大小</label>
+                        <input type="range" id="element-size" min="10" max="500" value="100">
+                        <span id="size-value">100px</span>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="element-rotation">旋转</label>
+                        <input type="range" id="element-rotation" min="0" max="360" value="0">
+                        <span id="rotation-value">0°</span>
+                    </div>
+                    
+                    <div class="layer-controls">
+                        <button id="bring-forward" class="btn small">
+                            <span class="material-icons">flip_to_front</span>
+                            上移一层
+                        </button>
+                        <button id="send-backward" class="btn small">
+                            <span class="material-icons">flip_to_back</span>
+                            下移一层
+                        </button>
+                        <button id="delete-element" class="btn small danger">
+                            <span class="material-icons">delete</span>
+                            删除
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h3>保存的设计</h3>
+                <div id="saved-designs">
+                    <p class="empty-state">暂无保存的设计</p>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <div id="download-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>下载壁纸</h2>
+            <div class="download-options">
+                <div class="input-group">
+                    <label for="download-format">文件格式</label>
+                    <select id="download-format">
+                        <option value="png">PNG</option>
+                        <option value="jpg">JPG</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="download-quality">质量</label>
+                    <input type="range" id="download-quality" min="0.5" max="1" step="0.1" value="0.9">
+                    <span id="quality-value">90%</span>
+                </div>
+                <div class="input-group">
+                    <label for="download-filename">文件名</label>
+                    <input type="text" id="download-filename" value="极简壁纸">
+                </div>
+                <button id="confirm-download" class="btn primary">下载</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/fabric.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html> 
