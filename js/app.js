@@ -12,6 +12,19 @@ document.addEventListener('DOMContentLoaded', function() {
     setupLocalStorage();
 });
 
+// 防抖函数
+function debounce(func, wait) {
+    let timeout;
+    return function() {
+        const context = this;
+        const args = arguments;
+        clearTimeout(timeout);
+        timeout = setTimeout(function() {
+            func.apply(context, args);
+        }, wait);
+    };
+}
+
 // 初始化Canvas
 function initCanvas() {
     // 检查是否已加载Fabric.js
@@ -62,13 +75,20 @@ function updateCanvasSize() {
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
     
-    // 计算适合容器的缩放比例
-    const scaleX = (containerWidth - 40) / canvasWidth;
-    const scaleY = (containerHeight - 40) / canvasHeight;
+    // 计算适合容器的缩放比例，保留一些边距
+    const padding = Math.min(containerWidth, containerHeight) * 0.05; // 动态边距，为容器尺寸的5%
+    const scaleX = (containerWidth - padding * 2) / canvasWidth;
+    const scaleY = (containerHeight - padding * 2) / canvasHeight;
+    
+    // 使用较小的缩放比例以保持宽高比
     zoomLevel = Math.min(scaleX, scaleY);
     
     // 应用缩放
     canvas.setZoom(zoomLevel);
+    
+    // 居中画布
+    canvas.viewportTransform[4] = (containerWidth - canvasWidth * zoomLevel) / 2;
+    canvas.viewportTransform[5] = (containerHeight - canvasHeight * zoomLevel) / 2;
     
     // 更新画布信息
     updateCanvasInfo();
@@ -85,8 +105,8 @@ function updateCanvasInfo() {
 
 // 设置事件监听器
 function setupEventListeners() {
-    // 窗口大小改变时调整画布
-    window.addEventListener('resize', updateCanvasSize);
+    // 窗口大小改变时调整画布，使用防抖函数避免频繁更新
+    window.addEventListener('resize', debounce(updateCanvasSize, 250));
     
     // 尺寸预设按钮
     document.querySelectorAll('.preset-btn').forEach(btn => {
