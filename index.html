@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>极简壁纸制作器</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/color-picker.css">
-    <link rel="stylesheet" href="css/saved-designs.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
     <header>
@@ -17,12 +15,12 @@
         <div class="actions">
             <button id="download-btn" class="btn primary">下载壁纸</button>
             <button id="save-btn" class="btn">保存设计</button>
-            <button id="load-btn" class="btn">加载设计</button>
         </div>
     </header>
 
     <main>
         <div class="sidebar left-panel">
+            <!-- 壁纸尺寸选择面板 -->
             <div class="panel">
                 <h3>壁纸尺寸</h3>
                 <div class="size-presets">
@@ -30,7 +28,7 @@
                     <div class="preset-buttons">
                         <button class="preset-btn" data-width="1080" data-height="1920">iPhone (1080×1920)</button>
                         <button class="preset-btn" data-width="1440" data-height="2560">Android (1440×2560)</button>
-                        <button class="preset-btn" data-width="1284" data-height="2778">iPhone 13 Pro Max (1284×2778)</button>
+                        <button class="preset-btn" data-width="1284" data-height="2778">iPhone 13 Pro Max</button>
                     </div>
                     
                     <h4>电脑壁纸</h4>
@@ -55,6 +53,7 @@
                 </div>
             </div>
             
+            <!-- 背景设置面板 -->
             <div class="panel">
                 <h3>背景设置</h3>
                 <div class="background-settings">
@@ -107,6 +106,7 @@
                 </div>
             </div>
             
+            <!-- 图形元素库面板 -->
             <div class="panel">
                 <h3>图形元素</h3>
                 <div class="shapes-library">
@@ -130,14 +130,21 @@
             </div>
         </div>
         
+        <!-- 画布区域 -->
         <div class="canvas-container">
             <canvas id="wallpaper-canvas"></canvas>
             <div class="canvas-info">
                 <span id="canvas-size">1920 × 1080</span>
-                <span id="zoom-level">缩放: 100%</span>
+                <div class="zoom-control">
+                    <input type="range" id="zoom-slider" min="10" max="200" value="100" step="5">
+                    <button id="reset-zoom" class="btn-icon" title="重置缩放">
+                        <span class="material-icons">fit_screen</span>
+                    </button>
+                </div>
             </div>
         </div>
         
+        <!-- 元素属性面板 -->
         <div class="sidebar right-panel">
             <div class="panel" id="element-properties" style="display: none;">
                 <h3>元素属性</h3>
@@ -181,16 +188,10 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="panel">
-                <h3>保存的设计</h3>
-                <div id="saved-designs">
-                    <p class="empty-state">暂无保存的设计</p>
-                </div>
-            </div>
         </div>
     </main>
     
+    <!-- 下载模态框 -->
     <div id="download-modal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -217,7 +218,8 @@
         </div>
     </div>
 
-    <script src="js/fabric.min.js"></script>
+    <!-- 引入Fabric.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html> 

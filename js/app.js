@@ -4,6 +4,7 @@ let selectedElement = null;
 let canvasWidth = 1920;
 let canvasHeight = 1080;
 let zoomLevel = 1;
+let autoFitZoom = true; // 是否自动适应容器大小
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', function() {
@@ -16,20 +17,10 @@ document.addEventListener('DOMContentLoaded', function() {
 function initCanvas() {
     // 检查是否已加载Fabric.js
     if (typeof fabric === 'undefined') {
-        // 如果没有加载，动态加载Fabric.js
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js';
-        script.onload = function() {
-            initFabricCanvas();
-        };
-        document.head.appendChild(script);
-    } else {
-        initFabricCanvas();
+        console.error('Fabric.js 未加载，请检查网络连接或引入本地文件');
+        return;
     }
-}
 
-// 使用Fabric.js初始化Canvas
-function initFabricCanvas() {
     // 创建Fabric.js画布
     canvas = new fabric.Canvas('wallpaper-canvas', {
         width: canvasWidth,
@@ -38,6 +29,9 @@ function initFabricCanvas() {
         selection: true,
         preserveObjectStacking: true
     });
+    
+    // 修正画布的CSS样式，确保upper-canvas和lower-canvas保持一致的宽高比
+    adjustCanvasCSS();
     
     // 设置画布大小
     updateCanvasSize();
@@ -49,6 +43,29 @@ function initFabricCanvas() {
     
     // 更新画布信息
     updateCanvasInfo();
+}
+
+// 调整画布的CSS样式，确保正确缩放
+function adjustCanvasCSS() {
+    // 获取所有相关的canvas元素
+    const canvasWrapper = canvas.wrapperEl;
+    const lowerCanvas = canvas.lowerCanvasEl;
+    const upperCanvas = canvas.upperCanvasEl;
+    
+    // 设置包装元素的样式
+    canvasWrapper.style.width = `${canvasWidth}px`;
+    canvasWrapper.style.height = `${canvasHeight}px`;
+    canvasWrapper.style.position = 'relative';
+    canvasWrapper.style.transformOrigin = 'center center'; // 改为从中心缩放
+    
+    // 确保upper-canvas和lower-canvas有相同的宽高比
+    [lowerCanvas, upperCanvas].forEach(canvasEl => {
+        canvasEl.style.position = 'absolute';
+        canvasEl.style.width = '100%';
+        canvasEl.style.height = '100%';
+        canvasEl.style.top = '0';
+        canvasEl.style.left = '0';
+    });
 }
 
 // 更新画布大小
@@ -65,10 +82,21 @@ function updateCanvasSize() {
     // 计算适合容器的缩放比例
     const scaleX = (containerWidth - 40) / canvasWidth;
     const scaleY = (containerHeight - 40) / canvasHeight;
-    zoomLevel = Math.min(scaleX, scaleY);
+    const autoZoom = Math.min(scaleX, scaleY);
     
-    // 应用缩放
-    canvas.setZoom(zoomLevel);
+    // 如果是自动适应模式，则使用计算出的缩放比例
+    if (autoFitZoom) {
+        zoomLevel = autoZoom;
+        // 更新滑块值
+        document.getElementById('zoom-slider').value = Math.round(zoomLevel * 100);
+    }
+    
+    // 获取canvas包装元素并应用缩放变换
+    const canvasWrapper = canvas.wrapperEl;
+    canvasWrapper.style.transform = `scale(${zoomLevel})`;
+    
+    // 设置容器中画布的居中位置
+    centerCanvasInContainer();
     
     // 更新画布信息
     updateCanvasInfo();
@@ -77,22 +105,116 @@ function updateCanvasSize() {
     canvas.renderAll();
 }
 
-// 更新画布信息显示
+// 将画布居中显示在容器中
+function centerCanvasInContainer() {
+    if (!canvas || !canvas.wrapperEl) return;
+    
+    const container = document.querySelector('.canvas-container');
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+    
+    const scaledWidth = canvasWidth * zoomLevel;
+    const scaledHeight = canvasHeight * zoomLevel;
+    
+    const marginLeft = Math.max(0, (containerWidth - scaledWidth) / 2);
+    const marginTop = Math.max(0, (containerHeight - scaledHeight) / 2);
+    
+    canvas.wrapperEl.style.margin = `${marginTop}px ${marginLeft}px`;
+}
+
+// 更新画布信息
 function updateCanvasInfo() {
-    document.getElementById('canvas-size').textContent = `${canvasWidth} × ${canvasHeight}`;
-    document.getElementById('zoom-level').textContent = `缩放: ${Math.round(zoomLevel * 100)}%`;
+    // 显示当前画布尺寸
+    const canvasSizeElement = document.getElementById('canvas-size');
+    if (canvasSizeElement) {
+        // 计算横纵比
+        const ratio = canvasWidth / canvasHeight;
+        const ratioFormatted = ratio.toFixed(2);
+        
+        // 显示尺寸和横纵比
+        canvasSizeElement.textContent = `${canvasWidth} × ${canvasHeight} (${ratioFormatted}:1)`;
+    }
+    
+    // 显示当前缩放比例
+    const zoomPercent = Math.round(zoomLevel * 100);
+    const zoomSlider = document.getElementById('zoom-slider');
+    if (zoomSlider) {
+        zoomSlider.value = zoomPercent;
+    }
 }
 
 // 设置事件监听器
 function setupEventListeners() {
-    // 窗口大小改变时调整画布
-    window.addEventListener('resize', updateCanvasSize);
+    // 缩放滑块事件监听
+    document.getElementById('zoom-slider').addEventListener('input', function(e) {
+        // 更新缩放级别
+        zoomLevel = parseInt(e.target.value) / 100;
+        // 关闭自动适应模式
+        autoFitZoom = false;
+        
+        // 应用缩放到画布包装元素
+        const canvasWrapper = canvas.wrapperEl;
+        canvasWrapper.style.transform = `scale(${zoomLevel})`;
+        
+        // 更新画布信息
+        updateCanvasInfo();
+    });
     
-    // 尺寸预设按钮
-    document.querySelectorAll('.preset-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+    // 重置缩放按钮事件监听
+    document.getElementById('reset-zoom').addEventListener('click', function() {
+        // 开启自动适应模式
+        autoFitZoom = true;
+        
+        // 重新计算适合容器的缩放比例
+        const container = document.querySelector('.canvas-container');
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+        const scaleX = (containerWidth - 40) / canvasWidth;
+        const scaleY = (containerHeight - 40) / canvasHeight;
+        zoomLevel = Math.min(scaleX, scaleY);
+        
+        // 更新滑块值
+        document.getElementById('zoom-slider').value = Math.round(zoomLevel * 100);
+        
+        // 应用缩放到画布包装元素
+        const canvasWrapper = canvas.wrapperEl;
+        canvasWrapper.style.transform = `scale(${zoomLevel})`;
+        
+        // 更新画布信息
+        updateCanvasInfo();
+    });
+    
+    // 窗口大小调整事件
+    window.addEventListener('resize', function() {
+        // 如果启用了自动适应，重新计算缩放比例
+        if (autoFitZoom) {
+            updateCanvasSize();
+        } else {
+            // 即使不自动缩放，也要调整画布容器中的位置
+            centerCanvasInContainer();
+        }
+    });
+    
+    // 壁纸尺寸预设按钮点击事件
+    document.querySelectorAll('.preset-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // 移除其他按钮的活跃状态
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 为当前按钮添加活跃状态
+            this.classList.add('active');
+            
+            // 获取并应用尺寸
             const width = parseInt(this.dataset.width);
             const height = parseInt(this.dataset.height);
+            
+            // 更新自定义尺寸输入框
+            document.getElementById('custom-width').value = width;
+            document.getElementById('custom-height').value = height;
+            
+            // 应用尺寸
             changeCanvasSize(width, height);
         });
     });
@@ -101,7 +223,11 @@ function setupEventListeners() {
     document.getElementById('apply-custom-size').addEventListener('click', function() {
         const width = parseInt(document.getElementById('custom-width').value);
         const height = parseInt(document.getElementById('custom-height').value);
-        changeCanvasSize(width, height);
+        if (width > 0 && height > 0) {
+            changeCanvasSize(width, height);
+            // 清除预设按钮的高亮
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        }
     });
     
     // 背景类型切换
@@ -139,7 +265,6 @@ function setupEventListeners() {
     
     // 保存和下载按钮
     document.getElementById('save-btn').addEventListener('click', saveDesign);
-    document.getElementById('load-btn').addEventListener('click', showSavedDesigns);
     document.getElementById('download-btn').addEventListener('click', showDownloadModal);
     
     // 下载模态框
@@ -171,137 +296,253 @@ function toggleBackgroundControls() {
 
 // 更新背景
 function updateBackground() {
-    const bgType = document.querySelector('input[name="bg-type"]:checked').value;
-    
-    if (bgType === 'solid') {
-        // 纯色背景
-        const color = document.getElementById('solid-color-picker').value;
-        canvas.setBackgroundColor(color, canvas.renderAll.bind(canvas));
-    } else {
-        // 渐变背景
-        const color1 = document.getElementById('gradient-color-1').value;
-        const color2 = document.getElementById('gradient-color-2').value;
-        const direction = document.getElementById('gradient-direction').value;
-        const gradientType = document.getElementById('gradient-type').value;
+    try {
+        const bgType = document.querySelector('input[name="bg-type"]:checked').value;
         
-        let gradient;
-        
-        if (gradientType === 'linear') {
-            // 线性渐变
-            let coords;
+        if (bgType === 'solid') {
+            // 纯色背景
+            const solidColorPicker = document.getElementById('solid-color-picker');
+            const backgroundColor = solidColorPicker.value;
             
-            switch (direction) {
-                case 'to right':
-                    coords = { x1: 0, y1: 0, x2: canvasWidth, y2: 0 };
-                    break;
-                case 'to bottom':
-                    coords = { x1: 0, y1: 0, x2: 0, y2: canvasHeight };
-                    break;
-                case 'to bottom right':
-                    coords = { x1: 0, y1: 0, x2: canvasWidth, y2: canvasHeight };
-                    break;
-                case 'to bottom left':
-                    coords = { x1: canvasWidth, y1: 0, x2: 0, y2: canvasHeight };
-                    break;
-                default:
-                    coords = { x1: 0, y1: 0, x2: canvasWidth, y2: 0 };
+            // 设置画布背景颜色
+            canvas.setBackgroundColor(backgroundColor, canvas.renderAll.bind(canvas));
+            
+        } else if (bgType === 'gradient') {
+            // 渐变背景
+            const gradientColor1 = document.getElementById('gradient-color-1').value;
+            const gradientColor2 = document.getElementById('gradient-color-2').value;
+            const gradientDirection = document.getElementById('gradient-direction').value;
+            const gradientType = document.getElementById('gradient-type').value;
+            
+            if (gradientType === 'linear') {
+                // 线性渐变
+                let coords;
+                
+                // 根据方向设置渐变坐标
+                switch(gradientDirection) {
+                    case 'to right':
+                        coords = { x1: 0, y1: 0, x2: canvasWidth, y2: 0 };
+                        break;
+                    case 'to bottom':
+                        coords = { x1: 0, y1: 0, x2: 0, y2: canvasHeight };
+                        break;
+                    case 'to bottom right':
+                        coords = { x1: 0, y1: 0, x2: canvasWidth, y2: canvasHeight };
+                        break;
+                    case 'to bottom left':
+                        coords = { x1: canvasWidth, y1: 0, x2: 0, y2: canvasHeight };
+                        break;
+                    default:
+                        coords = { x1: 0, y1: 0, x2: canvasWidth, y2: 0 };
+                }
+                
+                // 创建渐变
+                const gradient = new fabric.Gradient({
+                    type: 'linear',
+                    coords: coords,
+                    colorStops: [
+                        { offset: 0, color: gradientColor1 },
+                        { offset: 1, color: gradientColor2 }
+                    ]
+                });
+                
+                // 创建矩形作为背景
+                const bgRect = new fabric.Rect({
+                    left: 0,
+                    top: 0,
+                    width: canvasWidth,
+                    height: canvasHeight,
+                    fill: gradient,
+                    selectable: false,
+                    evented: false
+                });
+                
+                // 清除现有背景
+                canvas.setBackgroundColor('', canvas.renderAll.bind(canvas));
+                
+                // 移除之前的背景对象
+                canvas.getObjects().forEach(obj => {
+                    if (obj.id === 'background') {
+                        canvas.remove(obj);
+                    }
+                });
+                
+                // 添加渐变背景并移至底层
+                bgRect.id = 'background';
+                canvas.add(bgRect);
+                bgRect.moveTo(0); // 移至最底层
+                canvas.renderAll();
+                
+            } else if (gradientType === 'radial') {
+                // 径向渐变
+                const centerX = canvasWidth / 2;
+                const centerY = canvasHeight / 2;
+                const radius = Math.max(canvasWidth, canvasHeight) / 2;
+                
+                // 创建渐变
+                const gradient = new fabric.Gradient({
+                    type: 'radial',
+                    coords: {
+                        r1: 0,
+                        r2: radius,
+                        x1: centerX,
+                        y1: centerY,
+                        x2: centerX,
+                        y2: centerY
+                    },
+                    colorStops: [
+                        { offset: 0, color: gradientColor1 },
+                        { offset: 1, color: gradientColor2 }
+                    ]
+                });
+                
+                // 创建矩形作为背景
+                const bgRect = new fabric.Rect({
+                    left: 0,
+                    top: 0,
+                    width: canvasWidth,
+                    height: canvasHeight,
+                    fill: gradient,
+                    selectable: false,
+                    evented: false
+                });
+                
+                // 清除现有背景
+                canvas.setBackgroundColor('', canvas.renderAll.bind(canvas));
+                
+                // 移除之前的背景对象
+                canvas.getObjects().forEach(obj => {
+                    if (obj.id === 'background') {
+                        canvas.remove(obj);
+                    }
+                });
+                
+                // 添加渐变背景并移至底层
+                bgRect.id = 'background';
+                canvas.add(bgRect);
+                bgRect.moveTo(0); // 移至最底层
+                canvas.renderAll();
             }
-            
-            gradient = new fabric.Gradient({
-                type: 'linear',
-                coords: coords,
-                colorStops: [
-                    { offset: 0, color: color1 },
-                    { offset: 1, color: color2 }
-                ]
-            });
-        } else {
-            // 径向渐变
-            gradient = new fabric.Gradient({
-                type: 'radial',
-                coords: {
-                    r1: canvasWidth > canvasHeight ? canvasHeight / 2 : canvasWidth / 2,
-                    r2: 0,
-                    x1: canvasWidth / 2,
-                    y1: canvasHeight / 2,
-                    x2: canvasWidth / 2,
-                    y2: canvasHeight / 2
-                },
-                colorStops: [
-                    { offset: 0, color: color1 },
-                    { offset: 1, color: color2 }
-                ]
-            });
         }
-        
-        canvas.setBackgroundColor(gradient, canvas.renderAll.bind(canvas));
+    } catch (error) {
+        console.error(`更新背景时出错: ${error.message}`);
     }
 }
 
 // 改变画布大小
 function changeCanvasSize(width, height) {
     if (width > 0 && height > 0) {
+        // 保存旧尺寸用于比较
+        const oldWidth = canvasWidth;
+        const oldHeight = canvasHeight;
+        
+        // 更新尺寸
         canvasWidth = width;
         canvasHeight = height;
+        
+        // 调整canvas元素的CSS样式
+        if (canvas && canvas.wrapperEl) {
+            adjustCanvasCSS();
+        }
+        
+        // 如果尺寸比例发生较大变化，强制更新自动缩放
+        const oldRatio = oldWidth / oldHeight;
+        const newRatio = width / height;
+        if (Math.abs(oldRatio - newRatio) > 0.2) {
+            autoFitZoom = true;
+        }
+        
         updateCanvasSize();
         updateBackground(); // 更新背景以适应新尺寸
+        
+        // 如果有活动对象，重新定位到中心
+        if (canvas.getActiveObject()) {
+            const activeObject = canvas.getActiveObject();
+            activeObject.viewportCenter();
+            canvas.renderAll();
+        }
+        
+        // 更新尺寸信息显示
+        updateCanvasInfo();
     }
 }
 
-// 添加形状
+// 添加图形元素
 function addShape(shapeType) {
-    let shape;
-    
-    switch (shapeType) {
-        case 'rectangle':
-            shape = new fabric.Rect({
-                left: canvasWidth / 2 - 50,
-                top: canvasHeight / 2 - 50,
-                width: 100,
-                height: 100,
-                fill: '#000000',
-                originX: 'center',
-                originY: 'center'
-            });
-            break;
-        case 'circle':
-            shape = new fabric.Circle({
-                left: canvasWidth / 2,
-                top: canvasHeight / 2,
-                radius: 50,
-                fill: '#000000',
-                originX: 'center',
-                originY: 'center'
-            });
-            break;
-        case 'triangle':
-            shape = new fabric.Triangle({
-                left: canvasWidth / 2,
-                top: canvasHeight / 2,
-                width: 100,
-                height: 100,
-                fill: '#000000',
-                originX: 'center',
-                originY: 'center'
-            });
-            break;
-        case 'line':
-            shape = new fabric.Line([
-                canvasWidth / 2 - 50, canvasHeight / 2,
-                canvasWidth / 2 + 50, canvasHeight / 2
-            ], {
-                stroke: '#000000',
-                strokeWidth: 5,
-                originX: 'center',
-                originY: 'center'
-            });
-            break;
-    }
-    
-    if (shape) {
+    try {
+        let shape;
+        // 获取画布中心点
+        const centerX = canvasWidth / 2;
+        const centerY = canvasHeight / 2;
+        
+        // 默认尺寸和颜色
+        const defaultSize = Math.min(canvasWidth, canvasHeight) * 0.2;
+        const defaultColor = '#000000';
+        
+        switch(shapeType) {
+            case 'rectangle':
+                shape = new fabric.Rect({
+                    width: defaultSize,
+                    height: defaultSize,
+                    fill: defaultColor
+                });
+                break;
+                
+            case 'circle':
+                shape = new fabric.Circle({
+                    radius: defaultSize / 2,
+                    fill: defaultColor
+                });
+                break;
+                
+            case 'triangle':
+                shape = new fabric.Triangle({
+                    width: defaultSize,
+                    height: defaultSize,
+                    fill: defaultColor
+                });
+                break;
+                
+            case 'line':
+                shape = new fabric.Line([
+                    -defaultSize / 2, 0,
+                    defaultSize / 2, 0
+                ], {
+                    stroke: defaultColor,
+                    strokeWidth: 5
+                });
+                break;
+                
+            default:
+                console.warn(`未知的图形类型: ${shapeType}`);
+                return;
+        }
+        
+        // 设置元素为可选中、可拖动
+        shape.set({
+            left: centerX,
+            top: centerY,
+            originX: 'center',
+            originY: 'center',
+            selectable: true,
+            hasControls: true,
+            hasBorders: true
+        });
+        
+        // 添加到画布并重新渲染
         canvas.add(shape);
         canvas.setActiveObject(shape);
         canvas.renderAll();
+        
+        // 滚动到画布中央确保可见
+        shape.viewportCenter();
+        canvas.renderAll();
+        
+        // 触发选择事件以显示属性面板
+        onObjectSelected({ target: shape });
+        
+    } catch (error) {
+        console.error(`添加图形时出错: ${error.message}`);
     }
 }
 
@@ -379,7 +620,7 @@ function updateElementProperties() {
             scaleY: scale
         });
     } else if (selectedElement.type === 'line') {
-        const scale = size / (selectedElement.width || 100);
+        const scale = size / 100; // 假设线条的基础长度是100
         selectedElement.set({
             scaleX: scale
         });
@@ -419,10 +660,10 @@ function deleteElement() {
 
 // 设置本地存储
 function setupLocalStorage() {
+    // 初始化本地存储
     if (!localStorage.getItem('wallpaperDesigns')) {
         localStorage.setItem('wallpaperDesigns', JSON.stringify([]));
     }
-    updateSavedDesignsList();
 }
 
 // 保存设计
@@ -432,106 +673,30 @@ function saveDesign() {
     const designName = prompt('请输入设计名称:', '我的壁纸 ' + new Date().toLocaleString());
     if (!designName) return;
     
-    const design = {
-        id: Date.now(),
-        name: designName,
-        width: canvasWidth,
-        height: canvasHeight,
-        json: JSON.stringify(canvas.toJSON()),
-        thumbnail: canvas.toDataURL({
-            format: 'jpeg',
-            quality: 0.3,
-            multiplier: 0.1
-        }),
-        date: new Date().toISOString()
-    };
-    
-    const designs = JSON.parse(localStorage.getItem('wallpaperDesigns'));
-    designs.push(design);
-    localStorage.setItem('wallpaperDesigns', JSON.stringify(designs));
-    
-    alert('设计已保存!');
-    updateSavedDesignsList();
-}
-
-// 更新保存的设计列表
-function updateSavedDesignsList() {
-    const savedDesignsContainer = document.getElementById('saved-designs');
-    const designs = JSON.parse(localStorage.getItem('wallpaperDesigns'));
-    
-    if (!designs || designs.length === 0) {
-        savedDesignsContainer.innerHTML = '<p class="empty-state">暂无保存的设计</p>';
-        return;
+    try {
+        const design = {
+            id: Date.now(),
+            name: designName,
+            width: canvasWidth,
+            height: canvasHeight,
+            json: JSON.stringify(canvas.toJSON()),
+            thumbnail: canvas.toDataURL({
+                format: 'jpeg',
+                quality: 0.3,
+                multiplier: 0.1
+            }),
+            date: new Date().toISOString()
+        };
+        
+        const designs = JSON.parse(localStorage.getItem('wallpaperDesigns') || '[]');
+        designs.push(design);
+        localStorage.setItem('wallpaperDesigns', JSON.stringify(designs));
+        
+        alert('设计已保存!');
+    } catch (error) {
+        console.error('保存设计时出错:', error);
+        alert('保存失败，请稍后重试。');
     }
-    
-    let html = '<div class="saved-designs-list">';
-    designs.forEach(design => {
-        html += `
-            <div class="saved-design-item" data-id="${design.id}">
-                <div class="design-thumbnail">
-                    <img src="${design.thumbnail}" alt="${design.name}">
-                </div>
-                <div class="design-info">
-                    <h4>${design.name}</h4>
-                    <p>${design.width} × ${design.height}</p>
-                    <div class="design-actions">
-                        <button class="btn small load-design">加载</button>
-                        <button class="btn small danger delete-design">删除</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    html += '</div>';
-    
-    savedDesignsContainer.innerHTML = html;
-    
-    // 添加事件监听器
-    document.querySelectorAll('.load-design').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const id = parseInt(this.closest('.saved-design-item').dataset.id);
-            loadDesign(id);
-        });
-    });
-    
-    document.querySelectorAll('.delete-design').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const id = parseInt(this.closest('.saved-design-item').dataset.id);
-            deleteDesign(id);
-        });
-    });
-}
-
-// 显示保存的设计
-function showSavedDesigns() {
-    updateSavedDesignsList();
-}
-
-// 加载设计
-function loadDesign(id) {
-    const designs = JSON.parse(localStorage.getItem('wallpaperDesigns'));
-    const design = designs.find(d => d.id === id);
-    
-    if (!design) return;
-    
-    canvasWidth = design.width;
-    canvasHeight = design.height;
-    
-    canvas.loadFromJSON(JSON.parse(design.json), function() {
-        updateCanvasSize();
-        canvas.renderAll();
-    });
-}
-
-// 删除设计
-function deleteDesign(id) {
-    if (!confirm('确定要删除这个设计吗?')) return;
-    
-    const designs = JSON.parse(localStorage.getItem('wallpaperDesigns'));
-    const updatedDesigns = designs.filter(d => d.id !== id);
-    localStorage.setItem('wallpaperDesigns', JSON.stringify(updatedDesigns));
-    
-    updateSavedDesignsList();
 }
 
 // 显示下载模态框
@@ -548,20 +713,15 @@ function updateQualityValue() {
 
 // 下载壁纸
 function downloadWallpaper() {
+    if (!canvas) return;
+    
     const format = document.getElementById('download-format').value;
     const quality = parseFloat(document.getElementById('download-quality').value);
     const filename = document.getElementById('download-filename').value || '极简壁纸';
     
-    // 创建临时画布以导出全尺寸图像
-    const tempCanvas = new fabric.Canvas(document.createElement('canvas'), {
-        width: canvasWidth,
-        height: canvasHeight
-    });
-    
-    // 复制当前画布内容
-    tempCanvas.loadFromJSON(canvas.toJSON(), function() {
+    try {
         // 导出图像
-        const dataURL = tempCanvas.toDataURL({
+        const dataURL = canvas.toDataURL({
             format: format === 'jpg' ? 'jpeg' : format,
             quality: quality,
             multiplier: 1
@@ -575,8 +735,8 @@ function downloadWallpaper() {
         
         // 关闭模态框
         document.getElementById('download-modal').style.display = 'none';
-        
-        // 销毁临时画布
-        tempCanvas.dispose();
-    });
+    } catch (error) {
+        console.error('下载壁纸时出错:', error);
+        alert('下载失败，请稍后重试。');
+    }
 } 
