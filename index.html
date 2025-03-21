@@ -75,32 +75,49 @@
                         </div>
                     </div>
                     
-                    <div id="gradient-bg-controls" class="bg-controls" style="display: none;">
-                        <div class="color-picker-container">
-                            <label>起始颜色</label>
-                            <input type="color" id="gradient-color-1" value="#ffffff">
-                        </div>
-                        <div class="color-picker-container">
-                            <label>结束颜色</label>
-                            <input type="color" id="gradient-color-2" value="#000000">
-                        </div>
-                        
+                    <div id="gradient-controls" style="display: none;">
                         <div class="input-group">
-                            <label for="gradient-direction">渐变方向</label>
-                            <select id="gradient-direction">
-                                <option value="to right">从左到右</option>
-                                <option value="to bottom">从上到下</option>
-                                <option value="to bottom right">对角线(左上到右下)</option>
-                                <option value="to bottom left">对角线(右上到左下)</option>
-                            </select>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="gradient-type">渐变类型</label>
+                            <label>渐变类型：</label>
                             <select id="gradient-type">
                                 <option value="linear">线性渐变</option>
                                 <option value="radial">径向渐变</option>
                             </select>
+                        </div>
+                        <div id="linear-controls">
+                            <div class="input-group">
+                                <label>角度：</label>
+                                <input type="range" id="gradient-angle" min="0" max="360" value="0" step="1">
+                                <input type="number" id="gradient-angle-text" min="0" max="360" value="0" class="small-input">
+                            </div>
+                        </div>
+                        <div id="radial-controls" style="display: none;">
+                            <div class="input-group">
+                                <label>中心 X：</label>
+                                <input type="range" id="gradient-center-x" min="0" max="100" value="50" step="1">
+                                <input type="number" id="gradient-center-x-text" min="0" max="100" value="50" class="small-input">
+                                <span>%</span>
+                            </div>
+                            <div class="input-group">
+                                <label>中心 Y：</label>
+                                <input type="range" id="gradient-center-y" min="0" max="100" value="50" step="1">
+                                <input type="number" id="gradient-center-y-text" min="0" max="100" value="50" class="small-input">
+                                <span>%</span>
+                            </div>
+                            <div class="input-group">
+                                <label>半径：</label>
+                                <input type="range" id="gradient-radius" min="0" max="150" value="50" step="1">
+                                <input type="number" id="gradient-radius-text" min="0" max="150" value="50" class="small-input">
+                                <span>%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="gradient-editor">
+                            <div class="gradient-preview" id="gradient-preview"></div>
+                            <div class="gradient-stops" id="gradient-stops"></div>
+                            <div class="gradient-tools">
+                                <button id="add-gradient-stop" title="添加节点">添加节点</button>
+                                <button id="delete-gradient-stop" title="删除节点">删除节点</button>
+                            </div>
                         </div>
                     </div>
                 </div>

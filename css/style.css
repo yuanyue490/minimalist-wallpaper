@@ -10,6 +10,12 @@
     --text-light: #666666;
     --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     --transition: all 0.3s ease;
+    
+    /* 渐变编辑器相关 */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f0f0f0;
+    --bg-hover: #e5e5e5;
+    --text-primary: #333333;
 }
 
 * {
@@ -459,4 +465,185 @@ input[type="color"]::-webkit-color-swatch {
         margin: 10px 0;
         min-height: 300px;
     }
+}
+
+/* 渐变编辑器 */
+.gradient-editor {
+    margin-top: 15px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.gradient-preview {
+    height: 30px;
+    border-radius: 5px 5px 0 0;
+    margin-bottom: 5px;
+}
+
+.gradient-stops {
+    position: relative;
+    height: 40px;
+    background-color: var(--bg-secondary);
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 5px;
+}
+
+.gradient-tools {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+}
+
+.gradient-tools button {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text-primary);
+    flex: 1;
+    margin: 0 5px;
+}
+
+.gradient-tools button:first-child {
+    margin-left: 0;
+}
+
+.gradient-tools button:last-child {
+    margin-right: 0;
+}
+
+.gradient-tools button:hover {
+    background-color: var(--bg-hover);
+}
+
+#add-gradient-stop {
+    background-color: var(--bg-secondary);
+}
+
+#delete-gradient-stop {
+    background-color: #f9e5e5;
+}
+
+#delete-gradient-stop:hover {
+    background-color: #f5d0d0;
+}
+
+/* 渐变节点相关样式 */
+.gradient-stop {
+    position: absolute;
+    width: 10px;
+    height: 20px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+    top: 10px;
+    margin-left: -5px;
+    cursor: move;
+    z-index: 10;
+    transition: transform 0.1s;
+}
+
+.gradient-stop:hover {
+    transform: scaleX(1.2);
+}
+
+.gradient-stop.active {
+    border: 2px solid var(--accent-color);
+    z-index: 11;
+}
+
+.gradient-stop-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    cursor: pointer;
+    background-color: inherit;
+    transition: transform 0.1s;
+}
+
+.gradient-stop-color:hover {
+    transform: translateX(-50%) scale(1.2);
+    border-color: var(--accent-color);
+}
+
+.angle-control, .position-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.angle-control input[type="range"],
+.position-control input[type="range"] {
+    flex: 1;
+}
+
+.angle-input-container,
+.position-input-container {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+    width: 60px;
+}
+
+.angle-input-container input,
+.position-input-container input {
+    border: none;
+    width: calc(100% - 20px);
+    padding: 0.3rem;
+    text-align: right;
+}
+
+.angle-input-container span,
+.position-input-container span {
+    width: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f0f0;
+    font-size: 0.8rem;
+}
+
+/* 径向渐变可视化控制器 */
+.radial-preview-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    margin-bottom: 0.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.radial-center-handle {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background-color: #fff;
+    border: 2px solid var(--primary-color);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    cursor: move;
+    z-index: 2;
+}
+
+.radial-radius-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: #fff;
+    border: 2px solid var(--accent-color);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    cursor: move;
+    z-index: 1;
 } 
