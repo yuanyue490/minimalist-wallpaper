@@ -50,7 +50,7 @@ main {
     width: 280px;
     min-width: 280px;
     height: 100%;
-    background-color: var(--color-bg-panel);
+    background-color: var(--panel-bg);
     border-radius: 10px;
     padding: 15px;
     overflow-y: auto;
@@ -66,21 +66,32 @@ main {
     margin-left: 10px;
 }
 
-/* 画布容器 */
-.canvas-container {
+/* 外部画布容器 */
+.canvas-outer-container {
     flex: 1;
+    height: 100%;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    background-color: var(--color-bg-panel);
+    background-color: var(--panel-bg);
     border-radius: 10px;
-    padding: 20px;
     box-shadow: var(--shadow);
-    overflow: visible;
     position: relative;
+    overflow: hidden;
     margin: 0 10px;
-    min-height: 400px;
+}
+
+/* 画布容器 */
+.canvas-container {
+    position: relative;
+    background-color: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    overflow: visible !important;
 }
 
 /* Fabric.js 画布包装样式 */
@@ -88,9 +99,11 @@ main {
     margin: 0 auto;
     overflow: visible !important;
     transform-origin: center center !important;
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--border-color);
     background-color: #ffffff;
     box-shadow: var(--shadow);
+    max-width: 100%;
+    max-height: 100%;
 }
 
 /* 添加棋盘格背景作为透明度指示 */

@@ -52,17 +52,17 @@ function adjustCanvasCSS() {
     const lowerCanvas = canvas.lowerCanvasEl;
     const upperCanvas = canvas.upperCanvasEl;
     
-    // 设置包装元素的样式
+    // 重置包装元素的样式
     canvasWrapper.style.width = `${canvasWidth}px`;
     canvasWrapper.style.height = `${canvasHeight}px`;
-    canvasWrapper.style.position = 'relative';
-    canvasWrapper.style.transformOrigin = 'center center'; // 改为从中心缩放
+    canvasWrapper.style.position = 'absolute';
+    canvasWrapper.style.transformOrigin = 'center center';
     
-    // 确保upper-canvas和lower-canvas有相同的宽高比
+    // 确保upper-canvas和lower-canvas有相同的尺寸
     [lowerCanvas, upperCanvas].forEach(canvasEl => {
-        canvasEl.style.position = 'absolute';
         canvasEl.style.width = '100%';
         canvasEl.style.height = '100%';
+        canvasEl.style.position = 'absolute';
         canvasEl.style.top = '0';
         canvasEl.style.left = '0';
     });
@@ -70,36 +70,69 @@ function adjustCanvasCSS() {
 
 // 更新画布大小
 function updateCanvasSize() {
+    // 先清除canvasWrapper的transform，以获取真实尺寸
+    if (canvas && canvas.wrapperEl) {
+        canvas.wrapperEl.style.transform = '';
+    }
+    
     // 设置画布尺寸
     canvas.setWidth(canvasWidth);
     canvas.setHeight(canvasHeight);
     
-    // 计算缩放比例以适应屏幕
-    const container = document.querySelector('.canvas-container');
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
+    // 获取容器尺寸
+    const container = document.querySelector('.canvas-outer-container');
+    if (!container) return;
+    
+    // 计算可用空间，减去内边距
+    const containerWidth = container.clientWidth - 40;
+    const containerHeight = container.clientHeight - 40;
     
     // 计算适合容器的缩放比例
-    const scaleX = (containerWidth - 40) / canvasWidth;
-    const scaleY = (containerHeight - 40) / canvasHeight;
-    const autoZoom = Math.min(scaleX, scaleY);
+    const scaleX = containerWidth / canvasWidth;
+    const scaleY = containerHeight / canvasHeight;
     
-    // 如果是自动适应模式，则使用计算出的缩放比例
+    // 根据画布形状选择缩放策略
+    let autoZoom;
+    if (canvasHeight > canvasWidth) {
+        // 竖向画布优先考虑高度
+        autoZoom = Math.min(scaleY, scaleX);
+    } else {
+        // 横向画布优先考虑宽度
+        autoZoom = Math.min(scaleX, scaleY);
+    }
+    
+    // 限制最大缩放为1，防止画布过大
+    autoZoom = Math.min(autoZoom, 1);
+    
+    // 应用缩放比例
     if (autoFitZoom) {
         zoomLevel = autoZoom;
-        // 更新滑块值
-        document.getElementById('zoom-slider').value = Math.round(zoomLevel * 100);
+        const zoomSlider = document.getElementById('zoom-slider');
+        if (zoomSlider) {
+            zoomSlider.value = Math.round(zoomLevel * 100);
+        }
     }
+    
+    // 居中显示
+    centerCanvasInContainer();
+    
+    // 更新画布信息
+    updateCanvasInfo();
+    
+    // 重新渲染
+    canvas.renderAll();
+}
+
+// 新增：应用缩放函数
+function applyZoom() {
+    if (!canvas || !canvas.wrapperEl) return;
     
     // 获取canvas包装元素并应用缩放变换
     const canvasWrapper = canvas.wrapperEl;
     canvasWrapper.style.transform = `scale(${zoomLevel})`;
     
-    // 设置容器中画布的居中位置
+    // 居中显示
     centerCanvasInContainer();
-    
-    // 更新画布信息
-    updateCanvasInfo();
     
     // 重新渲染画布
     canvas.renderAll();
@@ -109,17 +142,27 @@ function updateCanvasSize() {
 function centerCanvasInContainer() {
     if (!canvas || !canvas.wrapperEl) return;
     
-    const container = document.querySelector('.canvas-container');
+    const container = document.querySelector('.canvas-outer-container');
+    if (!container) return;
+    
+    // 获取容器和画布尺寸
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
     
-    const scaledWidth = canvasWidth * zoomLevel;
-    const scaledHeight = canvasHeight * zoomLevel;
+    // 计算画布中心位置
+    const canvasWrapper = canvas.wrapperEl;
     
-    const marginLeft = Math.max(0, (containerWidth - scaledWidth) / 2);
-    const marginTop = Math.max(0, (containerHeight - scaledHeight) / 2);
+    // 重置所有位置和变换属性，确保从干净状态开始
+    canvasWrapper.style.position = 'absolute';
+    canvasWrapper.style.left = '50%';
+    canvasWrapper.style.top = '50%';
     
-    canvas.wrapperEl.style.margin = `${marginTop}px ${marginLeft}px`;
+    // 使用CSS transform同时处理居中和缩放
+    canvasWrapper.style.transform = `translate(-50%, -50%) scale(${zoomLevel})`;
+    canvasWrapper.style.transformOrigin = 'center center';
+    
+    // 打印日志以便调试
+    console.log(`Canvas centered: size=${canvasWidth}x${canvasHeight}, zoom=${zoomLevel}, container=${containerWidth}x${containerHeight}`);
 }
 
 // 更新画布信息
@@ -152,12 +195,14 @@ function setupEventListeners() {
         // 关闭自动适应模式
         autoFitZoom = false;
         
-        // 应用缩放到画布包装元素
-        const canvasWrapper = canvas.wrapperEl;
-        canvasWrapper.style.transform = `scale(${zoomLevel})`;
+        // 居中显示
+        centerCanvasInContainer();
         
         // 更新画布信息
         updateCanvasInfo();
+        
+        // 重新渲染
+        canvas.renderAll();
     });
     
     // 重置缩放按钮事件监听
@@ -165,23 +210,8 @@ function setupEventListeners() {
         // 开启自动适应模式
         autoFitZoom = true;
         
-        // 重新计算适合容器的缩放比例
-        const container = document.querySelector('.canvas-container');
-        const containerWidth = container.clientWidth;
-        const containerHeight = container.clientHeight;
-        const scaleX = (containerWidth - 40) / canvasWidth;
-        const scaleY = (containerHeight - 40) / canvasHeight;
-        zoomLevel = Math.min(scaleX, scaleY);
-        
-        // 更新滑块值
-        document.getElementById('zoom-slider').value = Math.round(zoomLevel * 100);
-        
-        // 应用缩放到画布包装元素
-        const canvasWrapper = canvas.wrapperEl;
-        canvasWrapper.style.transform = `scale(${zoomLevel})`;
-        
-        // 更新画布信息
-        updateCanvasInfo();
+        // 重新计算并应用画布大小
+        updateCanvasSize();
     });
     
     // 窗口大小调整事件
@@ -431,40 +461,50 @@ function updateBackground() {
 
 // 改变画布大小
 function changeCanvasSize(width, height) {
-    if (width > 0 && height > 0) {
-        // 保存旧尺寸用于比较
-        const oldWidth = canvasWidth;
-        const oldHeight = canvasHeight;
-        
-        // 更新尺寸
-        canvasWidth = width;
-        canvasHeight = height;
-        
-        // 调整canvas元素的CSS样式
-        if (canvas && canvas.wrapperEl) {
-            adjustCanvasCSS();
+    if (width <= 0 || height <= 0) return;
+    
+    // 检查画布是否有内容
+    const hasContent = canvas.getObjects().length > 0;
+    
+    // 如果有内容，显示确认对话框
+    if (hasContent) {
+        if (!confirm('更改壁纸尺寸会清空当前画布内容，确定要继续吗？')) {
+            return; // 用户取消了操作
         }
         
-        // 如果尺寸比例发生较大变化，强制更新自动缩放
-        const oldRatio = oldWidth / oldHeight;
-        const newRatio = width / height;
-        if (Math.abs(oldRatio - newRatio) > 0.2) {
-            autoFitZoom = true;
-        }
-        
-        updateCanvasSize();
-        updateBackground(); // 更新背景以适应新尺寸
-        
-        // 如果有活动对象，重新定位到中心
-        if (canvas.getActiveObject()) {
-            const activeObject = canvas.getActiveObject();
-            activeObject.viewportCenter();
-            canvas.renderAll();
-        }
-        
-        // 更新尺寸信息显示
-        updateCanvasInfo();
+        // 清空画布内容
+        canvas.clear();
     }
+    
+    // 更新尺寸
+    canvasWidth = width;
+    canvasHeight = height;
+    
+    // 调整canvas元素的CSS样式
+    if (canvas && canvas.wrapperEl) {
+        adjustCanvasCSS();
+    }
+    
+    // 启用自动缩放以确保新尺寸的画布能正确显示
+    autoFitZoom = true;
+    
+    updateCanvasSize();
+    
+    // 设置默认背景颜色
+    const bgType = document.querySelector('input[name="bg-type"]:checked').value;
+    if (bgType === 'solid') {
+        const solidColorPicker = document.getElementById('solid-color-picker');
+        const backgroundColor = solidColorPicker.value;
+        canvas.setBackgroundColor(backgroundColor, canvas.renderAll.bind(canvas));
+    } else {
+        updateBackground(); // 更新渐变背景以适应新尺寸
+    }
+    
+    // 清除选择状态
+    onSelectionCleared();
+    
+    // 更新尺寸信息显示
+    updateCanvasInfo();
 }
 
 // 添加图形元素
@@ -539,7 +579,7 @@ function addShape(shapeType) {
         canvas.renderAll();
         
         // 触发选择事件以显示属性面板
-        onObjectSelected({ target: shape });
+        onObjectSelected({ selected: [shape] });
         
     } catch (error) {
         console.error(`添加图形时出错: ${error.message}`);
@@ -548,46 +588,70 @@ function addShape(shapeType) {
 
 // 对象选择事件处理
 function onObjectSelected(e) {
-    selectedElement = canvas.getActiveObject();
-    document.getElementById('element-properties').style.display = 'block';
+    selectedElement = e.selected[0];
     
-    // 更新控制面板的值
-    if (selectedElement) {
-        // 更新颜色选择器
-        if (selectedElement.fill && selectedElement.fill !== 'transparent') {
-            document.getElementById('element-color').value = selectedElement.fill;
-        } else if (selectedElement.stroke) {
-            document.getElementById('element-color').value = selectedElement.stroke;
-        }
-        
-        // 更新透明度滑块
-        const opacity = selectedElement.opacity || 1;
-        document.getElementById('element-opacity').value = opacity * 100;
-        document.getElementById('opacity-value').textContent = `${Math.round(opacity * 100)}%`;
-        
-        // 更新大小滑块 (使用宽度或半径)
-        let size = 100;
-        if (selectedElement.width) {
-            size = selectedElement.width;
-        } else if (selectedElement.radius) {
-            size = selectedElement.radius * 2;
-        } else if (selectedElement.getScaledWidth) {
-            size = selectedElement.getScaledWidth();
-        }
-        document.getElementById('element-size').value = size;
-        document.getElementById('size-value').textContent = `${Math.round(size)}px`;
-        
-        // 更新旋转滑块
-        const angle = selectedElement.angle || 0;
-        document.getElementById('element-rotation').value = angle;
-        document.getElementById('rotation-value').textContent = `${Math.round(angle)}°`;
+    // 显示属性控制面板内容，隐藏提示信息
+    document.getElementById('no-selection-tip').style.display = 'none';
+    document.getElementById('element-controls-content').style.display = 'block';
+    
+    // 更新属性控制面板的值
+    updateElementControls();
+}
+
+// 新增：更新控制面板上的值以匹配选中元素的当前属性
+function updateElementControls() {
+    if (!selectedElement) return;
+    
+    // 更新颜色选择器
+    if (selectedElement.fill && selectedElement.fill !== 'transparent') {
+        document.getElementById('element-color').value = selectedElement.fill;
+    } else if (selectedElement.stroke) {
+        document.getElementById('element-color').value = selectedElement.stroke;
     }
+    
+    // 更新透明度滑块
+    const opacity = selectedElement.opacity || 1;
+    document.getElementById('element-opacity').value = opacity * 100;
+    document.getElementById('opacity-value').textContent = `${Math.round(opacity * 100)}%`;
+    
+    // 更新大小滑块
+    let size = 100;
+    if (selectedElement.type === 'circle') {
+        size = selectedElement.radius * 2;
+    } else if (selectedElement.type === 'rect' || selectedElement.type === 'triangle') {
+        if (selectedElement.scaleX) {
+            size = selectedElement.width * selectedElement.scaleX;
+        } else {
+            size = selectedElement.width;
+        }
+    } else if (selectedElement.type === 'line') {
+        if (selectedElement.scaleX) {
+            const lineLength = Math.sqrt(
+                Math.pow(selectedElement.x2 - selectedElement.x1, 2) + 
+                Math.pow(selectedElement.y2 - selectedElement.y1, 2)
+            );
+            size = lineLength * selectedElement.scaleX;
+        } else {
+            size = 100; // 默认线长
+        }
+    }
+    
+    document.getElementById('element-size').value = Math.round(size);
+    document.getElementById('size-value').textContent = `${Math.round(size)}px`;
+    
+    // 更新旋转滑块
+    const angle = selectedElement.angle || 0;
+    document.getElementById('element-rotation').value = angle;
+    document.getElementById('rotation-value').textContent = `${Math.round(angle)}°`;
 }
 
 // 清除选择事件处理
 function onSelectionCleared() {
     selectedElement = null;
-    document.getElementById('element-properties').style.display = 'none';
+    
+    // 显示提示信息，隐藏属性控制面板内容
+    document.getElementById('no-selection-tip').style.display = 'block';
+    document.getElementById('element-controls-content').style.display = 'none';
 }
 
 // 更新元素属性
@@ -596,10 +660,10 @@ function updateElementProperties() {
     
     // 更新颜色
     const color = document.getElementById('element-color').value;
-    if (selectedElement.fill && selectedElement.fill !== 'transparent') {
-        selectedElement.set('fill', color);
-    } else if (selectedElement.stroke) {
+    if (selectedElement.type === 'line') {
         selectedElement.set('stroke', color);
+    } else {
+        selectedElement.set('fill', color);
     }
     
     // 更新透明度
@@ -614,16 +678,20 @@ function updateElementProperties() {
     if (selectedElement.type === 'circle') {
         selectedElement.set('radius', size / 2);
     } else if (selectedElement.type === 'rect' || selectedElement.type === 'triangle') {
-        const scale = size / selectedElement.width;
+        // 保持原始宽高比
+        const originalWidth = selectedElement.width || 1;
+        const scale = size / originalWidth;
         selectedElement.set({
             scaleX: scale,
             scaleY: scale
         });
     } else if (selectedElement.type === 'line') {
-        const scale = size / 100; // 假设线条的基础长度是100
-        selectedElement.set({
-            scaleX: scale
-        });
+        // 对于线条，我们只改变其长度，不改变方向
+        const dx = selectedElement.x2 - selectedElement.x1;
+        const dy = selectedElement.y2 - selectedElement.y1;
+        const currentLength = Math.sqrt(dx * dx + dy * dy);
+        const scale = currentLength ? size / currentLength : 1;
+        selectedElement.set('scaleX', scale);
     }
     
     // 更新旋转
@@ -638,15 +706,41 @@ function updateElementProperties() {
 // 图层控制 - 上移一层
 function bringForward() {
     if (!selectedElement) return;
-    canvas.bringForward(selectedElement);
-    canvas.renderAll();
+    
+    try {
+        // 检查是否存在该方法
+        if (typeof canvas.bringForward === 'function') {
+            canvas.bringForward(selectedElement);
+        } else {
+            // 获取当前索引，移动到更高一层
+            const currentIndex = canvas.getObjects().indexOf(selectedElement);
+            selectedElement.moveTo(currentIndex + 1);
+        }
+        canvas.renderAll();
+    } catch (error) {
+        console.error('上移图层时出错:', error);
+    }
 }
 
 // 图层控制 - 下移一层
 function sendBackward() {
     if (!selectedElement) return;
-    canvas.sendBackward(selectedElement);
-    canvas.renderAll();
+    
+    try {
+        // 检查是否存在该方法
+        if (typeof canvas.sendBackward === 'function') {
+            canvas.sendBackward(selectedElement);
+        } else {
+            // 获取当前索引，移动到更低一层
+            const currentIndex = canvas.getObjects().indexOf(selectedElement);
+            if (currentIndex > 0) { // 确保不是最底层
+                selectedElement.moveTo(currentIndex - 1);
+            }
+        }
+        canvas.renderAll();
+    } catch (error) {
+        console.error('下移图层时出错:', error);
+    }
 }
 
 // 删除元素

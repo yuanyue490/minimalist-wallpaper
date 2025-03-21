@@ -130,61 +130,68 @@
             </div>
         </div>
         
-        <!-- 画布区域 -->
-        <div class="canvas-container">
-            <canvas id="wallpaper-canvas"></canvas>
-            <div class="canvas-info">
-                <span id="canvas-size">1920 × 1080</span>
-                <div class="zoom-control">
-                    <input type="range" id="zoom-slider" min="10" max="200" value="100" step="5">
-                    <button id="reset-zoom" class="btn-icon" title="重置缩放">
-                        <span class="material-icons">fit_screen</span>
-                    </button>
+        <!-- 画布区域容器 -->
+        <div class="canvas-outer-container">
+            <div class="canvas-container">
+                <canvas id="wallpaper-canvas"></canvas>
+                <div class="canvas-info">
+                    <span id="canvas-size">1920 × 1080</span>
+                    <div class="zoom-control">
+                        <input type="range" id="zoom-slider" min="10" max="200" value="100" step="5">
+                        <button id="reset-zoom" class="btn-icon" title="重置缩放">
+                            <span class="material-icons">fit_screen</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
         
         <!-- 元素属性面板 -->
         <div class="sidebar right-panel">
-            <div class="panel" id="element-properties" style="display: none;">
+            <div class="panel" id="element-properties">
                 <h3>元素属性</h3>
                 <div class="element-controls">
-                    <div class="input-group">
-                        <label for="element-color">颜色</label>
-                        <input type="color" id="element-color" value="#000000">
+                    <div id="no-selection-tip" style="text-align: center; padding: 20px; color: var(--text-light);">
+                        请选择一个元素来编辑其属性
                     </div>
-                    
-                    <div class="input-group">
-                        <label for="element-opacity">透明度</label>
-                        <input type="range" id="element-opacity" min="0" max="100" value="100">
-                        <span id="opacity-value">100%</span>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label for="element-size">大小</label>
-                        <input type="range" id="element-size" min="10" max="500" value="100">
-                        <span id="size-value">100px</span>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label for="element-rotation">旋转</label>
-                        <input type="range" id="element-rotation" min="0" max="360" value="0">
-                        <span id="rotation-value">0°</span>
-                    </div>
-                    
-                    <div class="layer-controls">
-                        <button id="bring-forward" class="btn small">
-                            <span class="material-icons">flip_to_front</span>
-                            上移一层
-                        </button>
-                        <button id="send-backward" class="btn small">
-                            <span class="material-icons">flip_to_back</span>
-                            下移一层
-                        </button>
-                        <button id="delete-element" class="btn small danger">
-                            <span class="material-icons">delete</span>
-                            删除
-                        </button>
+                    <div id="element-controls-content" style="display: none;">
+                        <div class="input-group">
+                            <label for="element-color">颜色</label>
+                            <input type="color" id="element-color" value="#000000">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="element-opacity">透明度</label>
+                            <input type="range" id="element-opacity" min="0" max="100" value="100">
+                            <span id="opacity-value">100%</span>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="element-size">大小</label>
+                            <input type="range" id="element-size" min="10" max="500" value="100">
+                            <span id="size-value">100px</span>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="element-rotation">旋转</label>
+                            <input type="range" id="element-rotation" min="0" max="360" value="0">
+                            <span id="rotation-value">0°</span>
+                        </div>
+                        
+                        <div class="layer-controls">
+                            <button id="bring-forward" class="btn small">
+                                <span class="material-icons">flip_to_front</span>
+                                上移一层
+                            </button>
+                            <button id="send-backward" class="btn small">
+                                <span class="material-icons">flip_to_back</span>
+                                下移一层
+                            </button>
+                            <button id="delete-element" class="btn small danger">
+                                <span class="material-icons">delete</span>
+                                删除
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
