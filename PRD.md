@@ -89,4 +89,5 @@
 - 颜色选择器采用直观的色轮/色板
 - 撤销/重做功能
 
-
+介绍 Fabric.js
+https://fabricjs.cc/docs/getting-started/fabric-intro-part-2/
