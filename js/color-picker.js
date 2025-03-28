@@ -181,7 +181,7 @@ class ColorPicker {
 
         // 点击文档其他区域关闭选择器
         document.addEventListener('click', (e) => {
-            if (this.popup.classList.contains('active')) {
+            if (this.popup.style.display === 'block') {
                 let targetEl = e.target;
                 let isClickInside = false;
                 
@@ -389,6 +389,9 @@ class ColorPicker {
 
     // 定位弹出框
     positionPopup() {
+        // 移除所有位置类
+        this.popup.classList.remove('position-right', 'position-left', 'position-bottom', 'position-top');
+        
         // 如果没有按钮元素，则不执行相对定位
         if (!this.button) {
             // 弹出框的位置应该已经通过CSS或其他方式设置
@@ -401,26 +404,46 @@ class ColorPicker {
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
         
-        // 计算位置 - 优先显示在下方
-        let left = buttonRect.left;
-        let top = buttonRect.bottom + 10;
+        // 根据按钮位置计算弹出框位置
+        let top, left;
         
-        // 水平居中对齐
-        left = left - (popupRect.width / 2) + (buttonRect.width / 2);
-        
-        // 检查下方空间是否足够，不够则显示在上方
-        if (top + popupRect.height > windowHeight - 10) {
+        // 默认情况下尝试在右侧显示
+        if (buttonRect.right + popupRect.width <= windowWidth) {
+            // 在按钮右侧显示
+            left = buttonRect.right + 10;
+            top = buttonRect.top;
+            this.popup.classList.add('position-right');
+        } 
+        // 如果右侧空间不足，尝试在左侧显示
+        else if (buttonRect.left - popupRect.width >= 0) {
+            // 在按钮左侧显示
+            left = buttonRect.left - popupRect.width - 10;
+            top = buttonRect.top;
+            this.popup.classList.add('position-left');
+        }
+        // 如果左右两侧都没有足够空间，尝试在下方显示
+        else if (buttonRect.bottom + popupRect.height <= windowHeight) {
+            // 在按钮下方显示
+            left = buttonRect.left;
+            top = buttonRect.bottom + 10;
+            this.popup.classList.add('position-bottom');
+        }
+        // 最后尝试在上方显示
+        else {
+            // 在按钮上方显示
+            left = buttonRect.left;
             top = buttonRect.top - popupRect.height - 10;
+            this.popup.classList.add('position-top');
         }
         
-        // 确保左侧不超出屏幕
-        if (left < 10) {
-            left = 10;
+        // 确保弹出框不会超出窗口边界
+        if (left < 0) left = 0;
+        if (top < 0) top = 0;
+        if (left + popupRect.width > windowWidth) {
+            left = windowWidth - popupRect.width;
         }
-        
-        // 确保右侧不超出屏幕
-        if (left + popupRect.width > windowWidth - 10) {
-            left = windowWidth - popupRect.width - 10;
+        if (top + popupRect.height > windowHeight) {
+            top = windowHeight - popupRect.height;
         }
         
         // 应用计算出的位置
@@ -640,19 +663,18 @@ document.addEventListener('DOMContentLoaded', function() {
             currentPreviewId: 'bg-color-current',
             previousPreviewId: 'bg-color-previous',
             swatchesId: 'bg-color-swatches',
-            applyButtonId: 'bg-color-apply',
-            cancelButtonId: 'bg-color-cancel',
             initialColor: '#f0f0f0',
             position: 'right',
-            onChange: function(color, isFinal) {
+            onChange: function(color) {
                 // 更新隐藏的原生颜色选择器的值
                 document.getElementById('solid-color-picker').value = color.hex;
                 
                 // 触发change事件，以便应用程序能够感知到颜色变化
-                if (isFinal) {
-                    const event = new Event('change');
-                    document.getElementById('solid-color-picker').dispatchEvent(event);
-                }
+                const event = new Event('change');
+                document.getElementById('solid-color-picker').dispatchEvent(event);
+                
+                // 更新背景颜色
+                updateBackground();
             }
         });
     }

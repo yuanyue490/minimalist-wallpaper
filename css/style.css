@@ -574,6 +574,11 @@ input[type="color"]::-webkit-color-swatch {
 }
 
 /* 颜色选择器弹窗 */
+.color-picker-popup {
+    transition: none !important;
+    transform: none !important;
+}
+
 .color-picker-modal {
     display: none;
     position: absolute;
@@ -738,9 +743,11 @@ input[type="color"]::-webkit-color-swatch {
     border-radius: 3px;
     border: 1px solid var(--border-color);
     cursor: pointer;
+    transition: transform 0.1s;
 }
 
 .preset-color:hover {
+    transform: scale(1.1);
     border-color: var(--accent-color);
 }
 

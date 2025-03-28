@@ -590,36 +590,12 @@ function setupGradientEditor() {
         setCurrentStopElement: setCurrentStopElement,
         
         showColorPicker: function(anchorElement, color) {
-            console.log('===== 渐变节点位置调试信息 =====');
-            
             // 强制浏览器重新计算元素位置
             void document.body.offsetHeight;
             
             setTimeout(() => {
                 // 获取锚点元素位置
-                const debugAnchorRect = anchorElement.getBoundingClientRect();
-                console.log('锚点元素位置:', debugAnchorRect);
-                
-                // 如果锚点元素位置为0，则尝试使用父元素位置
-                let anchorRect = debugAnchorRect;
-                if (debugAnchorRect.width === 0 || debugAnchorRect.height === 0) {
-                    console.log('锚点元素位置无效，尝试使用父元素位置');
-                    const parentElement = anchorElement.parentElement;
-                    if (parentElement) {
-                        anchorRect = parentElement.getBoundingClientRect();
-                        console.log('父元素位置:', anchorRect);
-                    }
-                }
-                
-                console.log('窗口尺寸:', { 
-                    width: window.innerWidth, 
-                    height: window.innerHeight 
-                });
-                console.log('锚点元素:', anchorElement);
-                console.log('文档滚动位置:', {
-                    scrollX: window.scrollX,
-                    scrollY: window.scrollY
-                });
+                const anchorRect = anchorElement.getBoundingClientRect();
                 
                 // 使用自定义颜色选择器
                 if (gradientNodePicker) {
@@ -629,10 +605,7 @@ function setupGradientEditor() {
                     
                     // 获取弹出框元素
                     const popupEl = document.getElementById('gradient-node-color-popup');
-                    if (!popupEl) {
-                        console.error('找不到渐变节点颜色选择器弹出框元素');
-                        return;
-                    }
+                    if (!popupEl) return;
                     
                     // 先隐藏其他颜色选择器
                     hideColorPicker();
@@ -643,12 +616,6 @@ function setupGradientEditor() {
                     
                     // 强制浏览器重新计算布局
                     void popupEl.offsetWidth;
-                    
-                    // 记录弹出框尺寸
-                    console.log('弹出框尺寸:', {
-                        width: popupEl.offsetWidth,
-                        height: popupEl.offsetHeight
-                    });
                     
                     // 获取渐变条容器的位置
                     const stopsContainer = document.getElementById('gradient-stops');
@@ -677,9 +644,6 @@ function setupGradientEditor() {
                         left = window.innerWidth - popupEl.offsetWidth - 10;
                     }
                     
-                    // 记录计算后的位置
-                    console.log('计算后位置:', { left, top });
-                    
                     // 设置位置 - 使用fixed定位
                     popupEl.style.position = 'fixed';
                     popupEl.style.left = `${left}px`;
@@ -687,13 +651,6 @@ function setupGradientEditor() {
                     
                     // 现在设置为可见
                     popupEl.style.visibility = 'visible';
-                    
-                    // 记录应用后的实际位置
-                    setTimeout(() => {
-                        const actualRect = popupEl.getBoundingClientRect();
-                        console.log('弹出框实际位置:', actualRect);
-                        console.log('===== 渐变节点位置调试信息结束 =====');
-                    }, 50);
                     
                     // 创建一个一次性事件监听器来处理点击外部关闭
                     // 先移除可能存在的旧事件处理器
@@ -706,13 +663,11 @@ function setupGradientEditor() {
                     window.isGradientColorPickerOpen = true;
                     
                     function handleOutsideClick(e) {
-                        console.log('点击事件触发，目标:', e.target);
                         // 检查点击是否在颜色选择器外部
                         if (!popupEl.contains(e.target) && 
                             !anchorElement.contains(e.target) && 
                             e.target !== anchorElement) {
                             
-                            console.log('点击在选择器外部，准备关闭选择器');
                             // 隐藏颜色选择器
                             popupEl.style.display = 'none';
                             
@@ -721,9 +676,6 @@ function setupGradientEditor() {
                             
                             // 更新颜色选择器状态
                             window.isGradientColorPickerOpen = false;
-                            console.log('选择器已关闭');
-                        } else {
-                            console.log('点击在选择器内部，保持选择器打开');
                         }
                     }
                 } else {
