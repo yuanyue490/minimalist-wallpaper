@@ -413,490 +413,50 @@ function setupGradientEditor() {
     const stopsContainer = document.getElementById('gradient-stops');
     let colorPickerModal = null;
     let currentStopElement = null;
-    
-    // 颜色选择器状态
-    let currentHue = 0;
-    let currentSaturation = 100;
-    let currentLightness = 50;
-    let currentAlpha = 1;
-    
-    // 创建颜色选择器DOM
-    function createColorPicker() {
-        // 如果已经存在，则返回现有实例
-        if (colorPickerModal) return colorPickerModal;
-        
-        // 创建颜色选择器容器
-        colorPickerModal = document.createElement('div');
-        colorPickerModal.id = 'color-picker-modal';
-        colorPickerModal.className = 'color-picker-modal';
-        
-        // 创建颜色选择器内容
-        colorPickerModal.innerHTML = `
-            <div class="color-picker-container">
-                <div class="color-picker-header">
-                    <span class="color-picker-title">颜色选择器</span>
-                    <span class="close-color-picker">&times;</span>
+
+    // 创建一个渐变节点专用的自定义颜色选择器
+    const gradientNodeColorPicker = document.createElement('div');
+    gradientNodeColorPicker.className = 'color-picker-wrapper';
+    gradientNodeColorPicker.id = 'gradient-node-color-picker-wrapper';
+    gradientNodeColorPicker.style.position = 'fixed';  // 使用fixed定位而不是absolute
+    gradientNodeColorPicker.style.zIndex = '30000';    // 确保最高层级
+    gradientNodeColorPicker.style.top = '0';           // 初始位置设为0
+    gradientNodeColorPicker.style.left = '0';          // 初始位置设为0
+    gradientNodeColorPicker.innerHTML = `
+        <div class="color-picker-popup" id="gradient-node-color-popup" style="display: none; position: absolute; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4); border: 1px solid rgba(0, 0, 0, 0.1);">
+            <div class="color-picker-saturation" id="gradient-node-color-saturation">
+                <div class="color-picker-saturation-pointer"></div>
+            </div>
+            <div class="color-picker-hue" id="gradient-node-color-hue">
+                <div class="color-picker-hue-slider"></div>
+            </div>
+            <div class="color-picker-alpha" id="gradient-node-color-alpha">
+                <div class="color-picker-alpha-gradient"></div>
+                <div class="color-picker-alpha-slider"></div>
+            </div>
+            <div class="color-picker-preview">
+                <div class="color-preview-current" id="gradient-node-color-current"></div>
+                <div class="color-preview-previous" id="gradient-node-color-previous"></div>
+            </div>
+            <div class="color-picker-inputs">
+                <div class="color-picker-input-group">
+                    <label>HEX</label>
+                    <input type="text" id="gradient-node-color-hex" maxlength="9">
                 </div>
-                <div class="color-picker-content">
-                    <div class="color-picker-main">
-                        <div class="color-field" id="color-field">
-                            <div class="color-pointer" id="color-pointer"></div>
-                        </div>
-                        <div class="slider-container">
-                            <div class="hue-slider" id="hue-slider">
-                                <div class="hue-slider-pointer" id="hue-slider-pointer"></div>
-                            </div>
-                            <div class="alpha-slider" id="alpha-slider">
-                                <div class="alpha-slider-pointer" id="alpha-slider-pointer"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="color-picker-footer">
-                        <input type="text" id="color-hex-input" maxlength="9" placeholder="#RRGGBB">
-                        <div class="preset-colors" id="preset-colors">
-                            <span class="preset-color" title="#F5F5F5" style="background-color: #F5F5F5;"></span>
-                            <span class="preset-color" title="#E0E0E0" style="background-color: #E0E0E0;"></span>
-                            <span class="preset-color" title="#BDBDBD" style="background-color: #BDBDBD;"></span>
-                            <span class="preset-color" title="#757575" style="background-color: #757575;"></span>
-                            <span class="preset-color" title="#424242" style="background-color: #424242;"></span>
-                            <span class="preset-color" title="#F0F4F8" style="background-color: #F0F4F8;"></span>
-                            <span class="preset-color" title="#E1E8F0" style="background-color: #E1E8F0;"></span>
-                            <span class="preset-color" title="#F0F4EA" style="background-color: #F0F4EA;"></span>
-                            <span class="preset-color" title="#E6E9E3" style="background-color: #E6E9E3;"></span>
-                            <span class="preset-color" title="#F4F0EA" style="background-color: #F4F0EA;"></span>
-                        </div>
-                    </div>
+                <div class="color-picker-input-group">
+                    <label>透明度</label>
+                    <input type="number" id="gradient-node-color-alpha-input" min="0" max="100" value="100">
                 </div>
             </div>
-        `;
-        
-        // 添加到文档
-        document.body.appendChild(colorPickerModal);
-        
-        // 设置关闭按钮事件
-        colorPickerModal.querySelector('.close-color-picker').addEventListener('click', hideColorPicker);
-        
-        // 点击外部关闭
-        document.addEventListener('mousedown', handleOutsideClick);
-        
-        // 设置颜色选择器控件事件
-        setupColorPickerEvents();
-        
-        return colorPickerModal;
-    }
-    
-    // 显示颜色选择器
-    function showColorPicker(anchorElement, color) {
-        // 确保颜色选择器已创建
-        if (!colorPickerModal) {
-            createColorPicker();
-        }
-        
-        // 先显示颜色选择器，但设为不可见，这样可以正确获取其尺寸
-        colorPickerModal.style.display = 'block';
-        colorPickerModal.style.visibility = 'hidden';
-        
-        // 更新颜色选择器状态
-        updateColorPicker(color);
-        
-        // 获取锚点元素的位置
-        const anchorRect = anchorElement.getBoundingClientRect();
-        
-        // 获取颜色选择器的尺寸
-        const pickerRect = colorPickerModal.getBoundingClientRect();
-        
-        // 计算初始位置（在锚点元素右侧）
-        let left = anchorRect.right + 10;
-        let top = anchorRect.top - 80;
-        
-        // 检查是否超出视窗右侧边界
-        const windowWidth = window.innerWidth;
-        if (left + pickerRect.width > windowWidth) {
-            // 如果超出右侧边界，则显示在左侧
-            left = anchorRect.left - pickerRect.width - 10;
-        }
-        
-        // 检查是否超出视窗顶部边界
-        if (top < 10) {
-            top = 10;
-        }
-        
-        // 检查是否超出视窗底部边界
-        const windowHeight = window.innerHeight;
-        if (top + pickerRect.height > windowHeight) {
-            // 如果超出底部边界，则向上调整
-            top = windowHeight - pickerRect.height - 10;
-        }
-        
-        // 应用计算好的位置
-        colorPickerModal.style.left = `${left}px`;
-        colorPickerModal.style.top = `${top}px`;
-        
-        // 设置为可见
-        colorPickerModal.style.visibility = 'visible';
-    }
-    
-    // 隐藏颜色选择器
-    function hideColorPicker() {
-        if (colorPickerModal) {
-            colorPickerModal.style.display = 'none';
-        }
-    }
-    
-    // 处理点击外部事件
-    function handleOutsideClick(event) {
-        if (colorPickerModal && colorPickerModal.style.display === 'block') {
-            // 检查点击是否在颜色选择器外部
-            if (!colorPickerModal.contains(event.target) && 
-                !event.target.classList.contains('gradient-stop-color')) {
-                hideColorPicker();
-            }
-        }
-    }
-    
-    // 设置颜色选择器控件事件
-    function setupColorPickerEvents() {
-        const colorField = document.getElementById('color-field');
-        const colorPointer = document.getElementById('color-pointer');
-        const hueSlider = document.getElementById('hue-slider');
-        const hueSliderPointer = document.getElementById('hue-slider-pointer');
-        const alphaSlider = document.getElementById('alpha-slider');
-        const alphaSliderPointer = document.getElementById('alpha-slider-pointer');
-        const colorHexInput = document.getElementById('color-hex-input');
-        
-        // 色相滑块事件处理
-        hueSlider.addEventListener('mousedown', function(e) {
-            function handleHueMove(moveEvent) {
-                const rect = hueSlider.getBoundingClientRect();
-                let y = moveEvent.clientY - rect.top;
-                y = Math.max(0, Math.min(rect.height, y));
-                
-                // 更新色相值 (0-360)
-                currentHue = Math.round((y / rect.height) * 360);
-                
-                // 更新滑块指针位置
-                hueSliderPointer.style.top = `${y}px`;
-                
-                // 更新主色板背景
-                colorField.style.background = `linear-gradient(to right, #fff, hsl(${currentHue}, 100%, 50%))`;
-                
-                // 更新透明度滑块背景
-                const rgb = hslToRgb(currentHue, currentSaturation, currentLightness);
-                updateAlphaSliderBackground(rgbToHex(rgb.r, rgb.g, rgb.b));
-                
-                // 更新颜色
-                updateColorFromHSL();
-            }
-            
-            function handleHueUp() {
-                document.removeEventListener('mousemove', handleHueMove);
-                document.removeEventListener('mouseup', handleHueUp);
-            }
-            
-            handleHueMove(e);
-            document.addEventListener('mousemove', handleHueMove);
-            document.addEventListener('mouseup', handleHueUp);
-        });
-        
-        // 透明度滑块事件处理
-        alphaSlider.addEventListener('mousedown', function(e) {
-            function handleAlphaMove(moveEvent) {
-                const rect = alphaSlider.getBoundingClientRect();
-                let y = moveEvent.clientY - rect.top;
-                y = Math.max(0, Math.min(rect.height, y));
-                
-                // 更新透明度值 (0-1)，顶部为1，底部为0
-                currentAlpha = 1 - (y / rect.height);
-                
-                // 更新滑块指针位置
-                alphaSliderPointer.style.top = `${y}px`;
-                
-                // 更新颜色
-                updateColorFromHSL();
-            }
-            
-            function handleAlphaUp() {
-                document.removeEventListener('mousemove', handleAlphaMove);
-                document.removeEventListener('mouseup', handleAlphaUp);
-            }
-            
-            handleAlphaMove(e);
-            document.addEventListener('mousemove', handleAlphaMove);
-            document.addEventListener('mouseup', handleAlphaUp);
-        });
-        
-        // 颜色场事件处理
-        colorField.addEventListener('mousedown', function(e) {
-            function handleColorMove(moveEvent) {
-                const rect = colorField.getBoundingClientRect();
-                let x = moveEvent.clientX - rect.left;
-                let y = moveEvent.clientY - rect.top;
-                
-                x = Math.max(0, Math.min(rect.width, x));
-                y = Math.max(0, Math.min(rect.height, y));
-                
-                // 更新饱和度和亮度值
-                currentSaturation = Math.round((x / rect.width) * 100);
-                currentLightness = Math.round(100 - (y / rect.height) * 100);
-                
-                // 更新指针位置
-                colorPointer.style.left = `${x}px`;
-                colorPointer.style.top = `${y}px`;
-                
-                // 更新透明度滑块背景
-                const rgb = hslToRgb(currentHue, currentSaturation, currentLightness);
-                updateAlphaSliderBackground(rgbToHex(rgb.r, rgb.g, rgb.b));
-                
-                // 更新颜色
-                updateColorFromHSL();
-            }
-            
-            function handleColorUp() {
-                document.removeEventListener('mousemove', handleColorMove);
-                document.removeEventListener('mouseup', handleColorUp);
-            }
-            
-            handleColorMove(e);
-            document.addEventListener('mousemove', handleColorMove);
-            document.addEventListener('mouseup', handleColorUp);
-        });
-        
-        // 十六进制输入框事件处理
-        colorHexInput.addEventListener('input', function(e) {
-            const hex = e.target.value;
-            
-            // 验证十六进制格式（支持带和不带透明度）
-            if (/^#?([0-9A-F]{3}|[0-9A-F]{6}|[0-9A-F]{8})$/i.test(hex)) {
-                let validHex = hex;
-                if (!validHex.startsWith('#')) {
-                    validHex = '#' + validHex;
-                }
-                
-                // 如果是三位十六进制，转换为六位
-                if (validHex.length === 4) {
-                    validHex = '#' + validHex[1] + validHex[1] + validHex[2] + validHex[2] + validHex[3] + validHex[3];
-                }
-                
-                // 解析颜色，包括可能的透明度
-                let colorHex = validHex;
-                let alpha = 1;
-                
-                if (validHex.length === 9) {
-                    alpha = parseInt(validHex.slice(7, 9), 16) / 255;
-                    colorHex = validHex.slice(0, 7);
-                }
-                
-                // 解析颜色为HSL
-                const rgb = hexToRgb(colorHex);
-                const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-                
-                // 更新状态
-                currentHue = hsl.h;
-                currentSaturation = hsl.s;
-                currentLightness = hsl.l;
-                currentAlpha = alpha;
-                
-                // 更新色相滑块指针位置
-                const huePosition = (currentHue / 360) * hueSlider.clientHeight;
-                hueSliderPointer.style.top = `${huePosition}px`;
-                
-                // 更新透明度滑块指针位置
-                const alphaPosition = (1 - currentAlpha) * alphaSlider.clientHeight;
-                alphaSliderPointer.style.top = `${alphaPosition}px`;
-                
-                // 更新主色板背景色
-                colorField.style.background = `linear-gradient(to right, #fff, hsl(${currentHue}, 100%, 50%))`;
-                
-                // 更新透明度滑块背景
-                updateAlphaSliderBackground(colorHex);
-                
-                // 更新选择点位置
-                const satPosition = currentSaturation * colorField.clientWidth / 100;
-                const lightPosition = (100 - currentLightness) * colorField.clientHeight / 100;
-                colorPointer.style.left = `${satPosition}px`;
-                colorPointer.style.top = `${lightPosition}px`;
-                
-                // 更新活动节点的颜色
-                if (activeStopIndex >= 0 && activeStopIndex < gradientStops.length) {
-                    gradientStops[activeStopIndex].color = validHex;
-                    
-                    // 更新活动节点的视觉样式
-                    if (currentStopElement) {
-                        currentStopElement.style.backgroundColor = validHex;
-                        currentStopElement.querySelector('.gradient-stop-color').style.backgroundColor = validHex;
-                    }
-                    
-                    updateGradientPreview();
-                    updateBackground();
-                }
-            }
-        });
-        
-        // 预设颜色点击事件
-        document.querySelectorAll('#preset-colors .preset-color').forEach(presetEl => {
-            presetEl.addEventListener('click', function() {
-                const color = this.title;
-                
-                // 保留当前的透明度
-                const rgb = hexToRgb(color);
-                const alphaHex = Math.round(currentAlpha * 255).toString(16).padStart(2, '0').toUpperCase();
-                const colorWithAlpha = currentAlpha < 1 ? `${color}${alphaHex}` : color;
-                
-                // 解析颜色为HSL
-                const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-                
-                // 更新状态
-                currentHue = hsl.h;
-                currentSaturation = hsl.s;
-                currentLightness = hsl.l;
-                
-                // 更新色相滑块指针位置
-                const huePosition = (currentHue / 360) * hueSlider.clientHeight;
-                hueSliderPointer.style.top = `${huePosition}px`;
-                
-                // 更新主色板背景色
-                colorField.style.background = `linear-gradient(to right, #fff, hsl(${currentHue}, 100%, 50%))`;
-                
-                // 更新透明度滑块背景
-                updateAlphaSliderBackground(color);
-                
-                // 更新选择点位置
-                const satPosition = currentSaturation * colorField.clientWidth / 100;
-                const lightPosition = (100 - currentLightness) * colorField.clientHeight / 100;
-                colorPointer.style.left = `${satPosition}px`;
-                colorPointer.style.top = `${lightPosition}px`;
-                
-                // 更新十六进制输入框
-                colorHexInput.value = colorWithAlpha;
-                
-                // 更新活动节点的颜色
-                if (activeStopIndex >= 0 && activeStopIndex < gradientStops.length) {
-                    gradientStops[activeStopIndex].color = colorWithAlpha;
-                    
-                    // 更新活动节点的视觉样式
-                    if (currentStopElement) {
-                        currentStopElement.style.backgroundColor = colorWithAlpha;
-                        currentStopElement.querySelector('.gradient-stop-color').style.backgroundColor = colorWithAlpha;
-                    }
-                    
-                    updateGradientPreview();
-                    updateBackground();
-                }
-            });
-        });
-    }
-    
-    // 更新透明度滑块背景
-    function updateAlphaSliderBackground(colorHex) {
-        if (!colorPickerModal) return;
-        const alphaSlider = colorPickerModal.querySelector('#alpha-slider');
-        if (alphaSlider) {
-            alphaSlider.style.backgroundImage = `linear-gradient(to bottom, ${colorHex}, transparent)`;
-        }
-    }
-    
-    // 根据HSL值和透明度更新颜色
-    function updateColorFromHSL() {
-        if (!colorPickerModal) return;
-        
-        const colorHexInput = colorPickerModal.querySelector('#color-hex-input');
-        if (!colorHexInput) return;
-        
-        const rgb = hslToRgb(currentHue, currentSaturation, currentLightness);
-        let hex = rgbToHex(rgb.r, rgb.g, rgb.b);
-        
-        // 如果有透明度，添加透明度值
-        if (currentAlpha < 1) {
-            const alphaHex = Math.round(currentAlpha * 255).toString(16).padStart(2, '0').toUpperCase();
-            hex = `${hex}${alphaHex}`;
-        }
-        
-        // 更新十六进制输入框
-        colorHexInput.value = hex;
-        
-        // 更新透明度滑块背景
-        updateAlphaSliderBackground(rgbToHex(rgb.r, rgb.g, rgb.b));
-        
-        // 如果有活动节点，更新它的颜色
-        if (activeStopIndex >= 0 && activeStopIndex < gradientStops.length) {
-            gradientStops[activeStopIndex].color = hex;
-            
-            // 更新活动节点的视觉样式
-            if (currentStopElement) {
-                currentStopElement.style.backgroundColor = hex;
-                currentStopElement.querySelector('.gradient-stop-color').style.backgroundColor = hex;
-            }
-            
-            // 更新渐变预览
-            updateGradientPreview();
-            updateBackground();
-        }
-    }
-    
-    // 更新颜色选择器显示
-    function updateColorPicker(color) {
-        if (!colorPickerModal) return;
-        
-        const colorField = colorPickerModal.querySelector('#color-field');
-        const colorPointer = colorPickerModal.querySelector('#color-pointer');
-        const hueSlider = colorPickerModal.querySelector('#hue-slider');
-        const hueSliderPointer = colorPickerModal.querySelector('#hue-slider-pointer');
-        const alphaSlider = colorPickerModal.querySelector('#alpha-slider');
-        const alphaSliderPointer = colorPickerModal.querySelector('#alpha-slider-pointer');
-        const colorHexInput = colorPickerModal.querySelector('#color-hex-input');
-        
-        if (!colorField || !colorPointer || !hueSlider || !hueSliderPointer || 
-            !alphaSlider || !alphaSliderPointer || !colorHexInput) return;
-        
-        // 处理带透明度的颜色
-        let hex = color;
-        let alpha = 1;
-        
-        if (color.length === 9) {
-            // 如果是8位十六进制（带透明度）
-            alpha = parseInt(color.slice(7, 9), 16) / 255;
-            hex = color.slice(0, 7);
-        }
-        
-        // 解析颜色为HSL
-        const rgb = hexToRgb(hex);
-        const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-        
-        // 更新状态变量
-        currentHue = hsl.h;
-        currentSaturation = hsl.s;
-        currentLightness = hsl.l;
-        currentAlpha = alpha;
-        
-        // 更新色相滑块指针位置
-        const huePosition = (hsl.h / 360) * hueSlider.clientHeight;
-        hueSliderPointer.style.top = `${huePosition}px`;
-        
-        // 更新透明度滑块指针位置
-        const alphaPosition = (1 - alpha) * alphaSlider.clientHeight;
-        alphaSliderPointer.style.top = `${alphaPosition}px`;
-        
-        // 更新主色板背景色（仅更新色相）
-        colorField.style.background = `linear-gradient(to right, #fff, hsl(${hsl.h}, 100%, 50%))`;
-        
-        // 更新透明度滑块背景
-        alphaSlider.style.backgroundImage = `linear-gradient(to bottom, ${hex}, transparent)`;
-        
-        // 更新选择点位置
-        const satPosition = hsl.s * colorField.clientWidth / 100;
-        const lightPosition = (100 - hsl.l) * colorField.clientHeight / 100;
-        colorPointer.style.left = `${satPosition}px`;
-        colorPointer.style.top = `${lightPosition}px`;
-        
-        // 更新十六进制输入框
-        // 如果有透明度，添加透明度值
-        if (alpha < 1) {
-            const alphaHex = Math.round(alpha * 255).toString(16).padStart(2, '0').toUpperCase();
-            colorHexInput.value = `${hex}${alphaHex}`;
-        } else {
-            colorHexInput.value = hex;
-        }
-    }
+            <div class="color-picker-swatches" id="gradient-node-color-swatches">
+                <!-- 预设颜色将通过JS动态添加 -->
+            </div>
+        </div>
+    `;
+    document.body.appendChild(gradientNodeColorPicker);
+
+    // 初始化渐变节点颜色选择器
+    let gradientNodePicker = null;
     
     // 添加初始渐变节点
     if (gradientStops.length === 0) {
@@ -933,6 +493,92 @@ function setupGradientEditor() {
     renderGradientStops();
     updateGradientPreview();
 
+    // 传统颜色选择器相关方法
+    function createColorPicker() {
+        // 如果已经存在，则返回现有实例
+        if (colorPickerModal) return colorPickerModal;
+        
+        // 创建颜色选择器容器
+        colorPickerModal = document.createElement('div');
+        colorPickerModal.id = 'color-picker-modal';
+        colorPickerModal.className = 'color-picker-modal';
+        
+        // 创建颜色选择器内容
+        colorPickerModal.innerHTML = `
+            <div class="color-picker-container">
+                <div class="color-picker-header">
+                    <span class="color-picker-title">颜色选择器</span>
+                    <span class="close-color-picker">&times;</span>
+                </div>
+                <div class="color-picker-content">
+                    <!-- 此处省略了部分内容 -->
+                </div>
+            </div>
+        `;
+        
+        // 添加到文档
+        document.body.appendChild(colorPickerModal);
+        
+        // 设置关闭按钮事件
+        colorPickerModal.querySelector('.close-color-picker').addEventListener('click', hideColorPicker);
+        
+        // 点击外部关闭
+        document.addEventListener('mousedown', function(event) {
+            if (colorPickerModal && colorPickerModal.style.display === 'block') {
+                // 检查点击是否在颜色选择器外部
+                if (!colorPickerModal.contains(event.target) && 
+                    !event.target.classList.contains('gradient-stop-color')) {
+                    hideColorPicker();
+                }
+            }
+        });
+        
+        return colorPickerModal;
+    }
+
+    function hideColorPicker() {
+        if (colorPickerModal) {
+            colorPickerModal.style.display = 'none';
+        }
+        
+        // 隐藏自定义颜色选择器
+        const gradientColorPopup = document.getElementById('gradient-node-color-popup');
+        if (gradientColorPopup) {
+            gradientColorPopup.style.display = 'none';
+        }
+    }
+
+    // 直接初始化颜色选择器
+    if (document.getElementById('gradient-node-color-picker-wrapper')) {
+        // 初始化颜色选择器
+        gradientNodePicker = new ColorPicker({
+            containerId: 'gradient-node-color-picker-wrapper',
+            buttonId: null, // 不使用按钮，由节点点击触发
+            popupId: 'gradient-node-color-popup',
+            saturationId: 'gradient-node-color-saturation',
+            hueId: 'gradient-node-color-hue',
+            alphaId: 'gradient-node-color-alpha',
+            hexInputId: 'gradient-node-color-hex',
+            alphaInputId: 'gradient-node-color-alpha-input',
+            currentPreviewId: 'gradient-node-color-current',
+            previousPreviewId: 'gradient-node-color-previous',
+            swatchesId: 'gradient-node-color-swatches',
+            initialColor: '#000000',
+            position: 'right',
+            onChange: function(color, isFinal) {
+                if (activeStopIndex >= 0 && activeStopIndex < gradientStops.length) {
+                    // 更新渐变节点颜色
+                    gradientStops[activeStopIndex].color = color.hexa;
+                    
+                    // 更新UI
+                    renderGradientStops();
+                    updateGradientPreview();
+                    updateBackground();
+                }
+            }
+        });
+    }
+
     // 设置当前操作的节点元素
     function setCurrentStopElement(element) {
         currentStopElement = element;
@@ -940,9 +586,177 @@ function setupGradientEditor() {
 
     // 将需要暴露的函数返回出去
     return {
-        showColorPicker: showColorPicker,
         hideColorPicker: hideColorPicker,
-        setCurrentStopElement: setCurrentStopElement
+        setCurrentStopElement: setCurrentStopElement,
+        
+        showColorPicker: function(anchorElement, color) {
+            console.log('===== 渐变节点位置调试信息 =====');
+            
+            // 强制浏览器重新计算元素位置
+            void document.body.offsetHeight;
+            
+            setTimeout(() => {
+                // 获取锚点元素位置
+                const debugAnchorRect = anchorElement.getBoundingClientRect();
+                console.log('锚点元素位置:', debugAnchorRect);
+                
+                // 如果锚点元素位置为0，则尝试使用父元素位置
+                let anchorRect = debugAnchorRect;
+                if (debugAnchorRect.width === 0 || debugAnchorRect.height === 0) {
+                    console.log('锚点元素位置无效，尝试使用父元素位置');
+                    const parentElement = anchorElement.parentElement;
+                    if (parentElement) {
+                        anchorRect = parentElement.getBoundingClientRect();
+                        console.log('父元素位置:', anchorRect);
+                    }
+                }
+                
+                console.log('窗口尺寸:', { 
+                    width: window.innerWidth, 
+                    height: window.innerHeight 
+                });
+                console.log('锚点元素:', anchorElement);
+                console.log('文档滚动位置:', {
+                    scrollX: window.scrollX,
+                    scrollY: window.scrollY
+                });
+                
+                // 使用自定义颜色选择器
+                if (gradientNodePicker) {
+                    // 设置初始颜色
+                    gradientNodePicker.colorHSVA = gradientNodePicker.hexToHSVA(color);
+                    gradientNodePicker.updateUI();
+                    
+                    // 获取弹出框元素
+                    const popupEl = document.getElementById('gradient-node-color-popup');
+                    if (!popupEl) {
+                        console.error('找不到渐变节点颜色选择器弹出框元素');
+                        return;
+                    }
+                    
+                    // 先隐藏其他颜色选择器
+                    hideColorPicker();
+                    
+                    // 先显示弹出框，以便获取其尺寸，但设置为不可见
+                    popupEl.style.display = 'block';
+                    popupEl.style.visibility = 'hidden';
+                    
+                    // 强制浏览器重新计算布局
+                    void popupEl.offsetWidth;
+                    
+                    // 记录弹出框尺寸
+                    console.log('弹出框尺寸:', {
+                        width: popupEl.offsetWidth,
+                        height: popupEl.offsetHeight
+                    });
+                    
+                    // 获取渐变条容器的位置
+                    const stopsContainer = document.getElementById('gradient-stops');
+                    const stopsRect = stopsContainer.getBoundingClientRect();
+                    
+                    // 计算位置 - 基于渐变条的位置，而非锚点元素
+                    // 水平位置根据当前选中渐变节点的偏移量计算
+                    let left = stopsRect.left + (stopsRect.width * gradientStops[activeStopIndex].offset);
+                    let top = stopsRect.bottom + 10; // 渐变条下方10px
+                    
+                    // 水平居中对齐弹出框到节点位置
+                    left = left - (popupEl.offsetWidth / 2);
+                    
+                    // 检查下方空间是否足够，不够则显示在上方
+                    if (top + popupEl.offsetHeight > window.innerHeight - 10) {
+                        top = stopsRect.top - popupEl.offsetHeight - 10;
+                    }
+                    
+                    // 确保左侧不超出屏幕
+                    if (left < 10) {
+                        left = 10;
+                    }
+                    
+                    // 确保右侧不超出屏幕
+                    if (left + popupEl.offsetWidth > window.innerWidth - 10) {
+                        left = window.innerWidth - popupEl.offsetWidth - 10;
+                    }
+                    
+                    // 记录计算后的位置
+                    console.log('计算后位置:', { left, top });
+                    
+                    // 设置位置 - 使用fixed定位
+                    popupEl.style.position = 'fixed';
+                    popupEl.style.left = `${left}px`;
+                    popupEl.style.top = `${top}px`;
+                    
+                    // 现在设置为可见
+                    popupEl.style.visibility = 'visible';
+                    
+                    // 记录应用后的实际位置
+                    setTimeout(() => {
+                        const actualRect = popupEl.getBoundingClientRect();
+                        console.log('弹出框实际位置:', actualRect);
+                        console.log('===== 渐变节点位置调试信息结束 =====');
+                    }, 50);
+                    
+                    // 创建一个一次性事件监听器来处理点击外部关闭
+                    // 先移除可能存在的旧事件处理器
+                    document.removeEventListener('mousedown', handleOutsideClick);
+                    
+                    // 添加新的事件处理器
+                    document.addEventListener('mousedown', handleOutsideClick);
+                    
+                    // 记录当前颜色选择器打开状态
+                    window.isGradientColorPickerOpen = true;
+                    
+                    function handleOutsideClick(e) {
+                        console.log('点击事件触发，目标:', e.target);
+                        // 检查点击是否在颜色选择器外部
+                        if (!popupEl.contains(e.target) && 
+                            !anchorElement.contains(e.target) && 
+                            e.target !== anchorElement) {
+                            
+                            console.log('点击在选择器外部，准备关闭选择器');
+                            // 隐藏颜色选择器
+                            popupEl.style.display = 'none';
+                            
+                            // 移除事件监听器
+                            document.removeEventListener('mousedown', handleOutsideClick);
+                            
+                            // 更新颜色选择器状态
+                            window.isGradientColorPickerOpen = false;
+                            console.log('选择器已关闭');
+                        } else {
+                            console.log('点击在选择器内部，保持选择器打开');
+                        }
+                    }
+                } else {
+                    // 回退到旧的颜色选择器
+                    if (!colorPickerModal) {
+                        createColorPicker();
+                    }
+                    colorPickerModal.style.display = 'block';
+                    
+                    const pickerRect = colorPickerModal.getBoundingClientRect();
+                    
+                    let left = anchorRect.right + 10;
+                    let top = anchorRect.top - 80;
+                    
+                    const windowWidth = window.innerWidth;
+                    if (left + pickerRect.width > windowWidth) {
+                        left = anchorRect.left - pickerRect.width - 10;
+                    }
+                    
+                    if (top < 10) {
+                        top = 10;
+                    }
+                    
+                    const windowHeight = window.innerHeight;
+                    if (top + pickerRect.height > windowHeight) {
+                        top = windowHeight - pickerRect.height - 10;
+                    }
+                    
+                    colorPickerModal.style.left = `${left}px`;
+                    colorPickerModal.style.top = `${top}px`;
+                }
+            }, 50);
+        }
     };
 }
 

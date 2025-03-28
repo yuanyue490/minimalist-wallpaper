@@ -545,11 +545,10 @@ input[type="color"]::-webkit-color-swatch {
     margin-left: -5px;
     cursor: move;
     z-index: 10;
-    transition: transform 0.1s;
 }
 
 .gradient-stop:hover {
-    transform: scaleX(1.2);
+    border-color: var(--accent-color);
 }
 
 .gradient-stop.active {
@@ -568,11 +567,9 @@ input[type="color"]::-webkit-color-swatch {
     transform: translateX(-50%);
     cursor: pointer;
     background-color: inherit;
-    transition: transform 0.1s;
 }
 
 .gradient-stop-color:hover {
-    transform: translateX(-50%) scale(1.2);
     border-color: var(--accent-color);
 }
 
@@ -741,11 +738,9 @@ input[type="color"]::-webkit-color-swatch {
     border-radius: 3px;
     border: 1px solid var(--border-color);
     cursor: pointer;
-    transition: transform 0.1s;
 }
 
 .preset-color:hover {
-    transform: scale(1.1);
     border-color: var(--accent-color);
 }
 
